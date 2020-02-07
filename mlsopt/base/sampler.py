@@ -4,24 +4,24 @@ __all__ = [
     "BaseSampler"
 ]
 
-
 class BaseSampler(ABC):
     """Base sampler class.
     """
     @abstractmethod
-    def _init_space(self):
+    def __init__(self):
         pass
-
 
     @abstractmethod
-    def space(self):
+    def __repr__(self):
         pass
 
+    @abstractmethod
+    def __str__(self):
+        pass
 
     @abstractmethod
     def sample_space(self):
         pass
-
 
     @abstractmethod
     def update_space(self):
