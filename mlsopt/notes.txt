@@ -1,0 +1,18 @@
+1. find data sets
+2. parameter spaces for xgboost, lightgbm, sk gbtrees
+
+# Handle bounds 
+
+# Fitness
+# Selection
+    # Elitism ratio
+        percentage of population kept to next generation [0, 1]
+        critical performance on algorithm convergence
+# Crossover
+    - uniform crossover
+    - modified crossover using 
+    b1 = rand() => keep random during each iteration
+    child1 = b1*parent1 + (1-b1)*parent2
+    child2 = (1-b1)*parent1 + b1*parent2
+# Mutation
+    Number between 0 and 1
