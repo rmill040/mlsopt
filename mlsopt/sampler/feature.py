@@ -32,7 +32,6 @@ class FeatureSampler(BaseSampler):
                  dynamic_update=False):
         self.n_features = n_features
 
-        # Set probability of feature on/off equal
         if selection_probs is None:
             self.selection_probs = np.repeat(0.5, self.n_features)
         
@@ -64,11 +63,8 @@ class FeatureSampler(BaseSampler):
         -------
         """
         if self.n_features < 4:
-            str_sp = "["  + ",".join(self.selection_probs.astype(str).tolist())
-            str_sp = str_sp + "]"
-
-            str_fn = "["  + ",".join(self.feature_names.astype(str).tolist())
-            str_fn = str_fn + "]"
+            str_sp  = "[" + ",".join(self.selection_probs.astype(str).tolist()) + "]"
+            str_fn  = "[" + ",".join(self.feature_names.astype(str).tolist()) + "]"
         else:
             str_sp  = "[" + ",".join(self.selection_probs.astype(str).tolist()[:1])
             str_sp += ",...," + str(self.selection_probs[-1]) + "]"
