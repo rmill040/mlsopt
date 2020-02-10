@@ -1,16 +1,21 @@
+import logging
 import numpy as np
 
+# Package imports
+from ..base.optimizers import BaseOptimizer
 
-class GAOptimizer:
+__all__ = ["GAOptimizer"]
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class GAOptimizer(BaseOptimizer):
     """ADD HERE.
 
     Parameters
     ----------
     """
     def __init__(self, 
-                 estimator,
-                 feature_sampler,
-                 hp_sampler,
                  n_population=100,
                  n_generations=10,
                  crossover_proba=0.50,
@@ -21,12 +26,10 @@ class GAOptimizer:
                  n_hof=1,
                  n_generations_patience=None,
                  n_jobs=1,
+                 backend='loky',
                  verbose=0
                  ):
         # Define attributes
-        self.estimator                   = estimator
-        self.feature_sampler             = feature_sampler
-        self.hp_sampler                  = hp_sampler
         self.n_population                = n_population
         self.n_generations               = n_generations
         self.crossover_proba             = crossover_proba
@@ -37,11 +40,36 @@ class GAOptimizer:
         self.n_hof                       = n_hof
         self.n_generations_patience      = n_generations_patience
         self.n_jobs                      = n_jobs
+        self.backend                     = backend
         self.verbose                     = verbose
 
-        # ADD HERE
-        self._converged = False
+        super().__init__(
+            backend=backend,
+            n_jobs=n_jobs,
+            verbose=verbose
+            )
 
+    def __str__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return ""
+
+    def __repr__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return ""
 
     def _init_population(self):
         """ADD
@@ -52,11 +80,9 @@ class GAOptimizer:
         Returns
         -------
         """
-        features = self.feature_sampler.sample_space(n_samples=self.n_population)
-        # self.hp_sampler.sample(n_samples=self.n_population)
+        import pdb; pdb.set_trace()
 
-
-    def search(self, X, y):
+    def search(self, objective, sampler, lower_is_better):
         """ADD
         
         Parameters
@@ -65,4 +91,4 @@ class GAOptimizer:
         Returns
         -------
         """
-        pass
+        self._init_population()

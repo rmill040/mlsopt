@@ -6,9 +6,14 @@ __all__ = [
 
 class BaseSampler(ABC):
     """Base sampler class.
-    """
+    """    
     @abstractmethod
-    def __init__(self):
+    def __init__(self, dynamic_update):
+        self.dynamic_update = dynamic_update
+        self._valid_sampler = True
+
+    @abstractmethod
+    def __str__(self):
         pass
 
     @abstractmethod
@@ -16,7 +21,11 @@ class BaseSampler(ABC):
         pass
 
     @abstractmethod
-    def __str__(self):
+    def __type__(self):
+        pass
+
+    @abstractmethod
+    def __sampler__(self):
         pass
 
     @abstractmethod

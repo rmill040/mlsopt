@@ -5,7 +5,7 @@ import logging
 from math import log
 
 # Package imports
-from ..base import BaseSampler
+from ..base.samplers import BaseSampler
 from ..utils import HP_DISTS, parse_hyperopt_param
 
 __all__ = [
@@ -26,13 +26,17 @@ class XGBClassifierSampler(BaseSampler):
     ----------
     """
     def __init__(self, 
+                 space=None,
                  dynamic_update=False, 
                  early_stopping=False, 
-                 seed=None):
-        self.dynamic_update = dynamic_update
+                 seed=None):        
         self.early_stopping = early_stopping
         self.seed           = seed
-        self.space          = self._init_space()
+        
+        if space is None:
+            self.space = self._init_space()
+        
+        super().__init__(dynamic_update=dynamic_update)
 
     def __str__(self):
         """ADD
@@ -43,7 +47,9 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        pass
+        return f"XGBClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
+               f"{self.dynamic_update}, early_stopping={self.early_stopping}," + \
+               f"seed={self.seed})"
 
     def __repr__(self):
         """ADD
@@ -54,7 +60,31 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        pass
+        return self.__str__()
+
+    @property
+    def __type__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return "hyperparameter"
+
+    @property
+    def __sampler__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return "XGBClassifierSampler"
 
     def _init_space(self):
         """ADD
@@ -114,18 +144,21 @@ class XGBClassifierSampler(BaseSampler):
             # Do not update n_estimators distribution if early stopping enabled
             if param == 'n_estimators' and self.early_stopping: continue
 
-            # Parse hyperopt distribution and calculate bounds of hyperparameter
+            # Parse hyperopt distribution and calculate bounds of distribution
             dist_type, bounds = parse_hyperopt_param(str(self.space[param]))
             if dist_type in ['choice', 'pchoice']: continue
             min_value, max_value = data[param].min(), data[param].max()
 
-            # Log data if needed
+            # Log transform bounds if log-based distributions
             if "log" in dist_type:
                 min_value = log(min_value)
                 max_value = log(max_value)
 
             # Update new distribution
             hp_dist = HP_DISTS[dist_type]
+
+            # For quantile-based distributions, cast sampled value to integer 
+            # and add in quantile value for updated distribution
             if dist_type.startswith("q"):
                 self.space[param] = scope.int(
                     hp_dist(param, min_value, max_value, bounds[-1])
@@ -141,22 +174,54 @@ class LGBMClassifierSampler:
     ----------
     """
     def __init__(self, 
+                 space=None,
                  dynamic_update=False, 
                  early_stopping=False, 
                  seed=None):
         self.dynamic_update = dynamic_update
         self.early_stopping = early_stopping
         self.seed           = seed
+        
+        if space is None:
+            self.space = self._init_space()
+        
+        super().__init__()
 
     def __str__(self):
-        pass
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return f"LGBMClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
+               f"{self.dynamic_update}, early_stopping={self.early_stopping}," + \
+               f"seed={self.seed})"
 
     def __repr__(self):
-        pass
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return self.__str__()
 
     @property
-    def space(self):
-        pass
+    def __type__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return "hyperparameter"
 
     def sample_space(self):
         pass
@@ -171,22 +236,54 @@ class SGBMClassifierSampler:
     ----------
     """
     def __init__(self, 
+                 space=None,
                  dynamic_update=False, 
                  early_stopping=False, 
                  seed=None):
         self.dynamic_update = dynamic_update
         self.early_stopping = early_stopping
         self.seed           = seed
+        
+        if space is None:
+            self.space = self._init_space()
+        
+        super().__init__()
 
     def __str__(self):
-        pass
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return f"SGBMClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
+               f"{self.dynamic_update}, early_stopping={self.early_stopping}," + \
+               f"seed={self.seed})"
 
     def __repr__(self):
-        pass
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return self.__str__()
 
     @property
-    def space(self):
-        pass
+    def __type__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return "hyperparameter"
 
     def sample_space(self):
         pass

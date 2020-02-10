@@ -1,5 +1,12 @@
 from hyperopt import hp
 
+__all__ = [
+    "HP_DISTS",
+    "SUPPORTED_HP_DISTS",
+    "STATUS_FAIL",
+    "STATUS_OK"
+]
+
 # Dictionary to map distribution names to hyperopt functions
 HP_DISTS = {
     'loguniform'  : hp.loguniform,
@@ -19,3 +26,7 @@ SUPPORTED_HP_DISTS = [
     "loguniform",
     "qloguniform"
 ]
+
+# Status indicators for optimizers
+STATUS_FAIL = 'FAIL'
+STATUS_OK   = 'OK'

@@ -4,18 +4,18 @@ import logging
 import numpy as np
 
 # Package imports
-from ..base.sampler import BaseSampler
+from ..base.samplers import BaseSampler
 
-__all__ = ["FeatureSampler"]
+__all__ = ["BernoulliFeatureSampler"]
 
 _LOGGER = logging.getLogger(__name__)
 
 # TODO:
 # 1. Add error checking
 # 2. Add unit tests
+# 3. Figure out better way to get class name automatically from instantiated class
 
-
-class FeatureSampler(BaseSampler):
+class BernoulliFeatureSampler(BaseSampler):
     """Probabilistic sampler for feature space with options of dynamic updates 
     and feature muting.
 
@@ -39,21 +39,13 @@ class FeatureSampler(BaseSampler):
             self._default_feature_names()
         
         self.muting_threshold = muting_threshold
-        self.dynamic_update   = dynamic_update
         self.support          = np.repeat(True, self.n_features)
+        from dill.source import getname
+
+        super().__init__(dynamic_update=dynamic_update)
+        import pdb; pdb.set_trace()
 
     def __str__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        return self.__repr__()
-
-    def __repr__(self):
         """ADD
         
         Parameters
@@ -77,6 +69,41 @@ class FeatureSampler(BaseSampler):
                f"muting_threshold={self.muting_threshold}, " + \
                f"dynamic_update={self.dynamic_update})"
 
+    def __repr__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return self.__str__()
+
+    @property
+    def __type__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return "feature"
+
+    @property
+    def __sampler__(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return "BernoulliFeatureSampler"
+    
     def _default_feature_names(self):
         """ADD
         
