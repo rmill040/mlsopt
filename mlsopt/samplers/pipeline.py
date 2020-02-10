@@ -55,18 +55,6 @@ class PipelineSampler(BaseSampler):
         """
         return "pipeline"
 
-    @property
-    def __sampler__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        return "PipelineSampler"
-
     def register_sampler(self, sampler, name=None):
         """ADD
         
@@ -80,9 +68,9 @@ class PipelineSampler(BaseSampler):
             _LOGGER.exception(f"sampler <{name}> not recognized as a valid " + \
                               "sampler")
             raise ValueError
-            
+
         if name is None:
-            _LOGGER.warn("name not defined, setting sampler name as class " + \
+            _LOGGER.warn("sampler name not defined, registering name as class " + \
                         f"name <{sampler.__sampler__}>")
             name = sampler.__sampler__
 

@@ -40,10 +40,8 @@ class BernoulliFeatureSampler(BaseSampler):
         
         self.muting_threshold = muting_threshold
         self.support          = np.repeat(True, self.n_features)
-        from dill.source import getname
 
         super().__init__(dynamic_update=dynamic_update)
-        import pdb; pdb.set_trace()
 
     def __str__(self):
         """ADD
@@ -92,18 +90,6 @@ class BernoulliFeatureSampler(BaseSampler):
         """
         return "feature"
 
-    @property
-    def __sampler__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        return "BernoulliFeatureSampler"
-    
     def _default_feature_names(self):
         """ADD
         

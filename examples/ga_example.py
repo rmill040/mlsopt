@@ -24,7 +24,7 @@ def main():
     # Define pipeline sampler
     sampler = PipelineSampler()
     sampler.register_sampler(hp_sampler)
-    sampler.register_sampler(feature_sampler, name="feature")
+    sampler.register_sampler(feature_sampler)
 
     # Define objective function
     def fn(): pass

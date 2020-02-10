@@ -74,18 +74,6 @@ class XGBClassifierSampler(BaseSampler):
         """
         return "hyperparameter"
 
-    @property
-    def __sampler__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        return "XGBClassifierSampler"
-
     def _init_space(self):
         """ADD
         
