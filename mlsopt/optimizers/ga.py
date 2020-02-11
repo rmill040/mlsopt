@@ -2,9 +2,14 @@ from copy import deepcopy
 from hyperopt.pyll.stochastic import sample
 from joblib import delayed, Parallel
 import logging
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import time
+
+matplotlib.style.use("ggplot")
 
 # Package imports
 from ..base.optimizers import BaseOptimizer
@@ -387,17 +392,28 @@ class GAOptimizer(BaseOptimizer):
         
         Returns
         -------
+        
         """
+        start = time.time()
+        
+        # Get feature names if specified in sampler
+        self._colmapper = {}
+        for name, dist in sampler.samplers.items():
+            if dist.__type__ == 'feature':
+                self._colmapper[name] = dist.feature_names
+  
         # Set this as an attribute
         self.lower_is_better = lower_is_better
 
         _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} jobs using " + \
                     f"{self.backend} backend")
-        start = time.time()
 
         # Initialize population and set best results
         population                  = sampler.sample_space(n_samples=self.n_population)
         self.best_results['metric'] = np.inf if lower_is_better else -np.inf
+        if self.verbose:
+            _LOGGER.info(f"initialized population with {self.n_population} " + \
+                         "chromosomes")
         
         # Begin optimization
         for generation in range(1, self.n_generations+1):
@@ -419,6 +435,11 @@ class GAOptimizer(BaseOptimizer):
             # Step 4. Mutation
             population = self._mutation(population, sampler)
         
+        # Finished
+        minutes = (time.time() - start) / 60
+        if self.verbose:
+            _LOGGER.info(f"finished searching in {minutes}")
+
         return self
 
     def serialize(self, save_name):
@@ -430,4 +451,49 @@ class GAOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        print(self.history)
+        if not save_name.endswith(".csv"): save_name += ".csv"
+        
+        # Concatenate history together
+        df = pd.concat([pd.DataFrame(h) for h in self.history], axis=0)\
+               .reset_index(drop=True)
+
+        # Unroll parameters
+        df_params = df.pop('params')
+        for sname in df_params.iloc[0].keys(): 
+            columns = self._colmapper.get(sname, None)
+            records = df_params.apply(lambda x: x[sname]).values.tolist()
+            df      = pd.concat([
+                            df, 
+                            pd.DataFrame.from_records(records, columns=columns)
+                            ], axis=1)
+
+        # Write data to disk
+        df.to_csv(save_name, index=False)
+        if self.verbose:
+            _LOGGER.info(f"saved results to disk at {save_name}")
+
+    def plot_history(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        # Concatenate history together
+        df = pd.concat([pd.DataFrame(h) for h in self.history], axis=0)\
+               .reset_index(drop=True)
+        
+        # Plot results
+        if self.lower_is_better:
+            best = df.iloc[df['metric'].idxmin()]
+        else:
+            best = df.iloc[df['metric'].idxmax()]
+        
+        title  = f"Best Metric = {best['metric']}" 
+        title += f"\nGeneration = {best['generation']}" 
+        sns.boxplot(x='generation', y='metric', data=df)
+        plt.title(title)
+        plt.tight_layout()
+        plt.show()

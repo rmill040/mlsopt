@@ -57,13 +57,18 @@ def main():
 
 
     # Optimize
-    opt = GAOptimizer(n_generations_patience=2, verbose=2, n_jobs=-1)
+    opt = GAOptimizer(n_population=30, 
+                      n_generations=5,
+                      n_generations_patience=2, 
+                      verbose=2, 
+                      n_jobs=-1)
     opt.search(
         fitness=fn,
         sampler=sampler,
         lower_is_better=False
     )
-
+    opt.serialize('test.csv')
+    opt.plot_history()
 
 if __name__ == "__main__":
     main()
