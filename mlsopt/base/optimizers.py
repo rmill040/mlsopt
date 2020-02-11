@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, Manager
 
 __all__ = [
     "BaseOptimizer"
@@ -18,6 +18,7 @@ class BaseOptimizer(ABC):
         if backend not in ['loky', 'threading', 'multiprocessing']:
             _LOGGER.exception(f"backend {backend} not a valid argument, use " + \
                               "loky, threading, or multiprocessing")
+            raise ValueError
         self.backend = backend
  
         # Calculate number of jobs for parallel processing
@@ -32,6 +33,11 @@ class BaseOptimizer(ABC):
 
         self.verbose = verbose
         self.history = []
+
+        # Keep track of best results
+        self.best_results           = Manager().dict()
+        self.best_results['metric'] = None
+        self.best_results['params'] = None
 
     @abstractmethod
     def __str__(self):

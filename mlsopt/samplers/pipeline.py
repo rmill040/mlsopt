@@ -30,7 +30,7 @@ class PipelineSampler(BaseSampler):
         Returns
         -------
         """
-        return f"PipelineSampler(samplers={self.samplers})"
+        return f"PipelineSampler(dynamic_update={self.dynamic_update})"
     
     def __repr__(self):
         """ADD
@@ -70,9 +70,9 @@ class PipelineSampler(BaseSampler):
             raise ValueError
 
         if name is None:
-            _LOGGER.warn("sampler name not defined, registering name as class " + \
-                        f"name <{sampler.__sampler__}>")
-            name = sampler.__sampler__
+            _LOGGER.warn("sampler name not defined, registering sampler with " + \
+                        f"name <{sampler.__typename__}>")
+            name = sampler.__typename__
 
         # Check if name already exists in registered samplers
         if name in self.samplers.keys():
@@ -104,7 +104,7 @@ class PipelineSampler(BaseSampler):
             space.update(sampler.space)
         return space
 
-    def sample_space(self, n_samples=1, return_combined=False):
+    def sample_space(self, n_samples=1, return_combined=True):
         """ADD
         
         Parameters

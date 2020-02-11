@@ -25,7 +25,7 @@ class BaseSampler(ABC):
         pass
 
     @property
-    def __sampler__(self):
+    def __typename__(self):
         return type(self).__name__
 
     @abstractmethod

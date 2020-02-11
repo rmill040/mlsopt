@@ -29,7 +29,7 @@ class XGBClassifierSampler(BaseSampler):
                  space=None,
                  dynamic_update=False, 
                  early_stopping=False, 
-                 seed=None):        
+                 seed=0):        
         self.early_stopping = early_stopping
         self.seed           = seed
         
