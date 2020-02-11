@@ -41,7 +41,7 @@ class BernoulliFeatureSampler(BaseSampler):
         self.muting_threshold = muting_threshold
         self.support          = np.repeat(True, self.n_features)
 
-        super().__init__(dynamic_update=dynamic_update)
+        super().__init__(dynamic_update=dynamic_update, seed=None)
 
     def __str__(self):
         """ADD

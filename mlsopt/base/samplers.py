@@ -8,8 +8,9 @@ class BaseSampler(ABC):
     """Base sampler class.
     """    
     @abstractmethod
-    def __init__(self, dynamic_update):
+    def __init__(self, dynamic_update, seed=None):
         self.dynamic_update = dynamic_update
+        self.seed           = seed
         self._valid_sampler = True
 
     @abstractmethod

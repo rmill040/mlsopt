@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
 from multiprocessing import cpu_count, Manager
+from numpy.random import Generator, PCG64
 
 __all__ = [
     "BaseOptimizer"
@@ -11,9 +12,9 @@ _LOGGER = logging.getLogger(__name__)
 
 class BaseOptimizer(ABC):
     """Base optimizer class.
-    """    
+    """
     @abstractmethod
-    def __init__(self, backend, verbose, n_jobs):
+    def __init__(self, backend, verbose, n_jobs, seed):
         # Define backend for parallel computation
         if backend not in ['loky', 'threading', 'multiprocessing']:
             _LOGGER.exception(f"backend {backend} not a valid argument, use " + \
@@ -32,6 +33,7 @@ class BaseOptimizer(ABC):
         self.n_jobs = n_jobs
 
         self.verbose = verbose
+        self.rg      = Generator(PCG64(seed=seed))
         self.history = []
 
         # Keep track of best results
@@ -46,6 +48,10 @@ class BaseOptimizer(ABC):
     @abstractmethod
     def __repr__(self):
         pass
+
+    @property
+    def __typename__(self):
+        return type(self).__name__
 
     @abstractmethod
     def search(self):

@@ -36,7 +36,7 @@ class XGBClassifierSampler(BaseSampler):
         if space is None:
             self.space = self._init_space()
         
-        super().__init__(dynamic_update=dynamic_update)
+        super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
         """ADD
@@ -87,7 +87,7 @@ class XGBClassifierSampler(BaseSampler):
         penalty     = (log(1e-6), log(10))
 
         return {
-            'n_estimators'      : scope.int(hp.quniform('n_estimators', 10, 2000, 1)),
+            'n_estimators'      : scope.int(hp.quniform('n_estimators', 10, 2000, 10)),
             'max_depth'         : scope.int(hp.quniform('max_depth', 1, 12, 1)),
             'min_child_weight'  : scope.int(hp.quniform('max_depth', 1, 20, 1)),
             'max_delta_step'    : scope.int(hp.quniform('max_delta_step', 0, 3, 1)),
@@ -173,7 +173,7 @@ class LGBMClassifierSampler:
         if space is None:
             self.space = self._init_space()
         
-        super().__init__()
+        super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
         """ADD
@@ -235,7 +235,7 @@ class SGBMClassifierSampler:
         if space is None:
             self.space = self._init_space()
         
-        super().__init__()
+        super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
         """ADD

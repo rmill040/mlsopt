@@ -57,7 +57,7 @@ def main():
 
 
     # Optimize
-    opt = GAOptimizer(verbose=2, n_jobs=-1)
+    opt = GAOptimizer(n_generations_patience=2, verbose=2, n_jobs=-1)
     opt.search(
         fitness=fn,
         sampler=sampler,
