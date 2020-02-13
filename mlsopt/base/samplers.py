@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 
-__all__ = [
-    "BaseSampler"
-]
+__all__ = ["BaseSampler"]
+
 
 class BaseSampler(ABC):
     """Base sampler class.
@@ -10,7 +9,6 @@ class BaseSampler(ABC):
     @abstractmethod
     def __init__(self, dynamic_update, seed=None):
         self.dynamic_update = dynamic_update
-        self.seed           = seed
         self._valid_sampler = True
 
     @abstractmethod

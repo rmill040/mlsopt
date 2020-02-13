@@ -1,5 +1,4 @@
 from hyperopt import hp
-from hyperopt.pyll.stochastic import sample
 import logging
 import numpy as np
 
@@ -7,13 +6,11 @@ import numpy as np
 from ..base.samplers import BaseSampler
 
 __all__ = ["BernoulliFeatureSampler"]
-
 _LOGGER = logging.getLogger(__name__)
 
 # TODO:
 # 1. Add error checking
 # 2. Add unit tests
-# 3. Figure out better way to get class name automatically from instantiated class
 
 class BernoulliFeatureSampler(BaseSampler):
     """Probabilistic sampler for feature space with options of dynamic updates 
@@ -41,7 +38,7 @@ class BernoulliFeatureSampler(BaseSampler):
         self.muting_threshold = muting_threshold
         self.support          = np.repeat(True, self.n_features)
 
-        super().__init__(dynamic_update=dynamic_update, seed=None)
+        super().__init__(dynamic_update=dynamic_update)
 
     def __str__(self):
         """ADD

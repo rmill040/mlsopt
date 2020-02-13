@@ -3,7 +3,7 @@ from sklearn.model_selection import cross_val_score
 from xgboost import XGBClassifier
 
 # Package imports
-from mlsopt.optimizers import GAOptimizer
+from mlsopt.optimizers import PSOptimizer
 from mlsopt.samplers import (
     BernoulliFeatureSampler, PipelineSampler, XGBClassifierSampler
 )
@@ -13,7 +13,7 @@ SEED = 1718
 
 def main():
     """Optimize feature selection and hyperparameters for extreme gradient 
-    boosted model using genetic algorithm.
+    boosted model using particle swarm optimization.
     """
     #############
     # Load Data #
@@ -35,26 +35,26 @@ def main():
     # Define Objective Function #
     #############################
 
-    def objective(chromosome): 
-        """Fitness function to maximize using genetic algorithm.
+    def objective(params): 
+        """Objective function to maximize using particle swarm optimization.
 
         Parameters
         ----------
-        chromosome : dict
+        params : dict
             Sample from the distributions of features and hyperparameters.
         
         Returns
         -------
         dict
-            Results of chromosome evaluation.
+            Results of parameter evaluation.
         """
         try:
             # Subset features
-            cols = chromosome['feature'] # Matches name of feature_sampler
+            cols = params['feature'] # Matches name of feature_sampler
             X_   = X[:, cols]
             
             # Define model
-            hp  = chromosome['hp']       # Matches name of hp_sampler
+            hp  = params['hp']       # Matches name of hp_sampler
             clf = XGBClassifier(**hp, seed=SEED)
             
             # Run 5-fold stratified cross-validation using AUC as metric
@@ -79,15 +79,7 @@ def main():
 
     # Most of these parameters are set to the default, but are explicitly
     # specified for sake of example
-    opt = GAOptimizer(n_population=30, 
-                      n_generations=5,
-                      crossover_proba=0.50,
-                      mutation_proba=0.10,
-                      crossover_independent_proba=0.20,
-                      mutation_independent_proba=0.05,
-                      tournament_size=3,
-                      n_hof=1,
-                      n_generations_patience=2, 
+    opt = PSOptimizer(n_particles=50,
                       verbose=1, 
                       n_jobs=-1,
                       backend='loky',
@@ -95,9 +87,10 @@ def main():
 
     opt.search(objective=objective, 
               sampler=sampler, 
-              lower_is_better=False)
+              lower_is_better=False,
+              max_iterations=5)
     
-    opt.serialize('gaoptimizer_results.csv')
+    opt.serialize('psoptimizer_results.csv')
     opt.plot_history()
 
 if __name__ == "__main__":

@@ -9,9 +9,9 @@ from ..base.samplers import BaseSampler
 from ..utils import HP_DISTS, parse_hyperopt_param
 
 __all__ = [
-    "XGBClassifierSampler",
     "LGBMClassifierSampler",
-    "SGBMClassifierSampler"
+    "SGBMClassifierSampler",
+    "XGBClassifierSampler"
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,15 +28,13 @@ class XGBClassifierSampler(BaseSampler):
     def __init__(self, 
                  space=None,
                  dynamic_update=False, 
-                 early_stopping=False, 
-                 seed=0):        
+                 early_stopping=False):        
         self.early_stopping = early_stopping
-        self.seed           = seed
         
         if space is None:
             self.space = self._init_space()
         
-        super().__init__(dynamic_update=dynamic_update, seed=seed)
+        super().__init__(dynamic_update=dynamic_update)
 
     def __str__(self):
         """ADD
@@ -48,8 +46,7 @@ class XGBClassifierSampler(BaseSampler):
         -------
         """
         return f"XGBClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
-               f"{self.dynamic_update}, early_stopping={self.early_stopping}," + \
-               f"seed={self.seed})"
+               f"{self.dynamic_update}, early_stopping={self.early_stopping})"
 
     def __repr__(self):
         """ADD
@@ -84,14 +81,14 @@ class XGBClassifierSampler(BaseSampler):
         -------
         """
         subsampling = (log(0.40), log(1.0))
-        penalty     = (log(1e-6), log(10))
+        penalty     = (log(1e-4), log(10))
 
         return {
             'n_estimators'      : scope.int(hp.quniform('n_estimators', 10, 2000, 10)),
             'max_depth'         : scope.int(hp.quniform('max_depth', 1, 12, 1)),
             'min_child_weight'  : scope.int(hp.quniform('max_depth', 1, 20, 1)),
             'max_delta_step'    : scope.int(hp.quniform('max_delta_step', 0, 3, 1)),
-            'learning_rate'     : hp.loguniform('learning_rate', log(1e-4), log(1)),
+            'learning_rate'     : hp.loguniform('learning_rate', log(1e-3), log(1)),
             'subsample'         : hp.loguniform('subsample', *subsampling),
             'colsample_bytree'  : hp.loguniform('colsample_bytree', *subsampling),
             'colsample_bylevel' : hp.loguniform('colsample_bylevel', *subsampling),
@@ -100,8 +97,7 @@ class XGBClassifierSampler(BaseSampler):
             'reg_alpha'         : hp.loguniform('reg_alpha', *penalty),
             'reg_lambda'        : hp.loguniform('reg_lambda', *penalty),
             'base_score'        : hp.loguniform('base_score', log(0.01), log(0.99)),
-            'scale_pos_weight'  : hp.loguniform('scale_pos_weight', log(0.1), log(10)),
-            'random_state'      : hp.choice('random_state', [self.seed])
+            'scale_pos_weight'  : hp.loguniform('scale_pos_weight', log(0.1), log(10))
         }
 
     def sample_space(self):
@@ -164,16 +160,14 @@ class LGBMClassifierSampler:
     def __init__(self, 
                  space=None,
                  dynamic_update=False, 
-                 early_stopping=False, 
-                 seed=None):
+                 early_stopping=False):
         self.dynamic_update = dynamic_update
         self.early_stopping = early_stopping
-        self.seed           = seed
         
         if space is None:
             self.space = self._init_space()
         
-        super().__init__(dynamic_update=dynamic_update, seed=seed)
+        super().__init__(dynamic_update=dynamic_update)
 
     def __str__(self):
         """ADD
@@ -185,8 +179,7 @@ class LGBMClassifierSampler:
         -------
         """
         return f"LGBMClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
-               f"{self.dynamic_update}, early_stopping={self.early_stopping}," + \
-               f"seed={self.seed})"
+               f"{self.dynamic_update}, early_stopping={self.early_stopping})"
 
     def __repr__(self):
         """ADD
@@ -226,16 +219,14 @@ class SGBMClassifierSampler:
     def __init__(self, 
                  space=None,
                  dynamic_update=False, 
-                 early_stopping=False, 
-                 seed=None):
+                 early_stopping=False):
         self.dynamic_update = dynamic_update
         self.early_stopping = early_stopping
-        self.seed           = seed
         
         if space is None:
             self.space = self._init_space()
         
-        super().__init__(dynamic_update=dynamic_update, seed=seed)
+        super().__init__(dynamic_update=dynamic_update)
 
     def __str__(self):
         """ADD
@@ -247,8 +238,7 @@ class SGBMClassifierSampler:
         -------
         """
         return f"SGBMClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
-               f"{self.dynamic_update}, early_stopping={self.early_stopping}," + \
-               f"seed={self.seed})"
+               f"{self.dynamic_update}, early_stopping={self.early_stopping})"
 
     def __repr__(self):
         """ADD

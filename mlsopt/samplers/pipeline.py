@@ -5,7 +5,6 @@ import pandas as pd
 from ..base.samplers import BaseSampler
 
 __all__ = ["PipelineSampler"]
-
 _LOGGER = logging.getLogger(__name__)
 
 

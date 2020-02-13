@@ -13,10 +13,9 @@ matplotlib.style.use("ggplot")
 
 # Package imports
 from ..base.optimizers import BaseOptimizer
-from ..utils.constants import STATUS_FAIL, STATUS_OK
+from ..utils import STATUS_FAIL, STATUS_OK
 
 __all__ = ["GAOptimizer"]
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -60,12 +59,10 @@ class GAOptimizer(BaseOptimizer):
         self._prev_hof_metrics           = []
         self._wait                       = 0
 
-        super().__init__(
-            backend=backend,
-            n_jobs=n_jobs,
-            verbose=verbose,
-            seed=seed
-            )
+        super().__init__(backend=backend,
+                         n_jobs=n_jobs,
+                         verbose=verbose,
+                         seed=seed)   
 
     def __str__(self):
         """ADD
@@ -96,19 +93,8 @@ class GAOptimizer(BaseOptimizer):
         """
         return self.__str__()
 
-    def _check_params(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        pass
-
     def _calculate_single_fitness(self, 
-                                  fitness, 
+                                  objective, 
                                   chromosome, 
                                   i, 
                                   generation):
@@ -122,15 +108,15 @@ class GAOptimizer(BaseOptimizer):
         """
         if self.verbose:
             if i % self.n_jobs == 0:
-                _LOGGER.info(f"evaluating chromosomes, {self.n_population - i} " + \
+                _LOGGER.info(f"evaluating chromosomes, {self.n_population - i} " + 
                              "remaining")
         
         # Evaluate chromosome
-        results = fitness(chromosome)
+        results = objective(chromosome)
 
         # Check if failure occurred during objective func evaluation
         if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
-            msg = "running candidate failed"
+            msg = "running chromosome failed"
             if 'message' in results.keys():
                 if results['message']: msg += f" because {results['message']}"
             _LOGGER.warn(msg)
@@ -162,7 +148,7 @@ class GAOptimizer(BaseOptimizer):
             'id'         : i
             }
         
-    def _fitness(self, population, fitness, generation):
+    def _fitness(self, population, objective, generation):
         """ADD
         
         Parameters
@@ -173,10 +159,9 @@ class GAOptimizer(BaseOptimizer):
         """
         # Calculate fitness for population
         population = Parallel(n_jobs=self.n_jobs, verbose=False, backend=self.backend)\
-                        (delayed(self._calculate_single_fitness)\
-                            (fitness, chromosome, i, generation)
-                                for i, chromosome in enumerate(population)
-                            )
+                        (delayed(self._calculate_single_fitness)
+                            (objective, chromosome, i, generation)
+                                for i, chromosome in enumerate(population))
         
         # Sort population based on fitness
         population = sorted(population, 
@@ -233,8 +218,8 @@ class GAOptimizer(BaseOptimizer):
             # occurred
             if self._wait > self.n_generations_patience:
                 if self.verbose:
-                    _LOGGER.info(f"early stopping in generation {generation} " + \
-                                 "since no change in hof metrics across " + \
+                    _LOGGER.info(f"early stopping in generation {generation} " + 
+                                 "since no change in hof metrics across " + 
                                  f"{self.n_generations_patience} generations")
                 return []
             
@@ -304,41 +289,31 @@ class GAOptimizer(BaseOptimizer):
                             pv2   = parent2[sname][pname]
                             dtype = type(pv1)
                             if self.rg.uniform() < self.crossover_independent_proba:
-                                # Data is numeric
-                                if dtype in [int, float]:
-                                    # Calculate new child values
-                                    b   = self.rg.uniform()
-                                    cv1 = b * pv1 + (1 - b) * pv2
-                                    cv2 = (1 - b) * pv1 + b * pv2
+                                # Calculate new child values
+                                b   = self.rg.uniform()
+                                cv1 = b * pv1 + (1 - b) * pv2
+                                cv2 = (1 - b) * pv1 + b * pv2
 
-                                    # Cast data types if needed
-                                    if not isinstance(cv1, dtype):
-                                        cv1 = dtype(cv1)
-                                        cv2 = dtype(cv2)                                
-
-                                    # TODO: Keep original distribution or allow
-                                    # interpolation as it currently works?
-                                                           
-                                # Otherwise assume data is not numeric and just
-                                # swap values
-                                else:
-                                    cv1 = pv2
-                                    cv2 = pv1
+                                # Cast data types if needed
+                                if not isinstance(cv1, dtype):
+                                    cv1 = dtype(cv1)
                                 
-                                # Update child values
-                                child1[sname][pname] = cv1
-                                child2[sname][pname] = cv2
-                    
+                                if not isinstance(cv2, dtype):
+                                    cv2 = dtype(cv2)                                
+
+                                # TODO: Keep original distribution or allow
+                                # interpolation as it currently works?
+      
                     # Crossover feature space
                     elif isinstance(parent1[sname], np.ndarray):
                         n_attr = len(parent1[sname])
                         for i, pv1, pv2 in zip(range(n_attr),
                                                parent1[sname],
                                                parent2[sname]):
-                                # Update child values by swapping parent values
-                                if self.rg.uniform() < self.crossover_independent_proba:
-                                    child1[sname][i] = pv2
-                                    child2[sname][i] = pv1
+                            # Update child values by swapping parent values
+                            if self.rg.uniform() < self.crossover_independent_proba:
+                                child1[sname][i] = pv2
+                                child2[sname][i] = pv1
 
             # Keep children
             population.append(child1)
@@ -384,7 +359,7 @@ class GAOptimizer(BaseOptimizer):
 
         return population
 
-    def search(self, fitness, sampler, lower_is_better):
+    def search(self, objective, sampler, lower_is_better):
         """ADD
         
         Parameters
@@ -398,36 +373,36 @@ class GAOptimizer(BaseOptimizer):
         
         # Get feature names if specified in sampler
         self._colmapper = {}
-        for name, dist in sampler.samplers.items():
-            if dist.__type__ == 'feature':
-                self._colmapper[name] = dist.feature_names
+        for sname, sdist in sampler.samplers.items():
+            if sdist.__type__ == 'feature':
+                self._colmapper[sname] = sdist.feature_names
   
         # Set this as an attribute
         self.lower_is_better = lower_is_better
 
-        _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} jobs using " + \
-                    f"{self.backend} backend")
+        _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} jobs using " + 
+                     f"{self.backend} backend")
 
         # Initialize population and set best results
         population                  = sampler.sample_space(n_samples=self.n_population)
         self.best_results['metric'] = np.inf if lower_is_better else -np.inf
         if self.verbose:
-            _LOGGER.info(f"initialized population with {self.n_population} " + \
+            _LOGGER.info(f"initialized population with {self.n_population} " + 
                          "chromosomes")
         
         # Begin optimization
         for generation in range(1, self.n_generations+1):
 
             if self.verbose:
-                msg = "\n" + "*"* 40 + f"\ngeneration {generation}\n" + "*"*40
+                msg = "\n" + "*"*40 + f"\ngeneration {generation}\n" + "*"*40
                 _LOGGER.info(msg)
 
             # Step 1. Evaluate fitness
-            population = self._fitness(population, fitness, generation)
+            population = self._fitness(population, objective, generation)
         
             # Step 2. Selection
             parents = self._selection(population, generation)
-            if not len(parents): return self
+            if not len(parents): return self # Early stopping enabled
 
             # Step 3. Crossover
             population = self._crossover(parents)
@@ -436,9 +411,9 @@ class GAOptimizer(BaseOptimizer):
             population = self._mutation(population, sampler)
         
         # Finished
-        minutes = (time.time() - start) / 60
+        minutes = round((time.time() - start) / 60, 2)
         if self.verbose:
-            _LOGGER.info(f"finished searching in {minutes}")
+            _LOGGER.info(f"finished searching in {minutes} minutes")
 
         return self
 
@@ -462,10 +437,9 @@ class GAOptimizer(BaseOptimizer):
         for sname in df_params.iloc[0].keys(): 
             columns = self._colmapper.get(sname, None)
             records = df_params.apply(lambda x: x[sname]).values.tolist()
-            df      = pd.concat([
-                            df, 
-                            pd.DataFrame.from_records(records, columns=columns)
-                            ], axis=1)
+            df      = pd.concat([df, 
+                                 pd.DataFrame.from_records(records, columns=columns)
+                                 ], axis=1)
 
         # Write data to disk
         df.to_csv(save_name, index=False)
@@ -485,15 +459,15 @@ class GAOptimizer(BaseOptimizer):
         df = pd.concat([pd.DataFrame(h) for h in self.history], axis=0)\
                .reset_index(drop=True)
         
-        # Plot results
-        if self.lower_is_better:
-            best = df.iloc[df['metric'].idxmin()]
-        else:
-            best = df.iloc[df['metric'].idxmax()]
-        
-        title  = f"Best Metric = {best['metric']}" 
-        title += f"\nGeneration = {best['generation']}" 
+        # Boxplot and swarmplot
         sns.boxplot(x='generation', y='metric', data=df)
+        sns.swarmplot(x='generation', y='metric', data=df, color=".25")
+
+        # Decorate plots
+        best   = df.iloc[df['metric'].idxmin()] if self.lower_is_better \
+                    else df.iloc[df['metric'].idxmax()]
+        title  = f"Best metric = {round(best['metric'], 4)} found in " + \
+                 f"generation {best['generation']}"
         plt.title(title)
         plt.tight_layout()
         plt.show()

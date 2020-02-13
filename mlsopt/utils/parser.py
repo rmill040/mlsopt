@@ -5,7 +5,6 @@ import re
 from ..utils import SUPPORTED_HP_DISTS
 
 __all__ = ["parse_hyperopt_param"]
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -28,8 +27,8 @@ def parse_hyperopt_param(string):
     """
     dist_type = re.findall("|".join(SUPPORTED_HP_DISTS), string)
     if not len(dist_type):
-        _LOGGER.exception("unsupported parameter distribution in hyperopt " + \
-                         f"string:\n{string}\nSupported distributions are " + \
+        _LOGGER.exception("unsupported parameter distribution in hyperopt " + 
+                         f"string:\n{string}\nSupported distributions are " + 
                          f"{', '.join(SUPPORTED_HP_DISTS)}\n")       
         raise ValueError
     
@@ -41,9 +40,9 @@ def parse_hyperopt_param(string):
             return 'choice', []
 
     # Get all the Literal{} entries
-    string = ' '.join(re.findall("Literal{-*\d+\.*\d*}", string))
+    string = ' '.join(re.findall(r"Literal{-*\d+\.*\d*}", string))
 
     # Parse all the numbers within the {} and map to float
-    parsed = list(map(float, re.findall("[Literal{}](-*\d+\.*\d*)", string)))
+    parsed = list(map(float, re.findall(r"[Literal{}](-*\d+\.*\d*)", string)))
     
     return dist_type[0], parsed

@@ -3,10 +3,7 @@ import logging
 from multiprocessing import cpu_count, Manager
 from numpy.random import Generator, PCG64
 
-__all__ = [
-    "BaseOptimizer"
-]
-
+__all__ = ["BaseOptimizer"]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -17,7 +14,7 @@ class BaseOptimizer(ABC):
     def __init__(self, backend, verbose, n_jobs, seed):
         # Define backend for parallel computation
         if backend not in ['loky', 'threading', 'multiprocessing']:
-            _LOGGER.exception(f"backend {backend} not a valid argument, use " + \
+            _LOGGER.exception(f"backend {backend} not a valid argument, use " + 
                               "loky, threading, or multiprocessing")
             raise ValueError
         self.backend = backend
@@ -59,4 +56,8 @@ class BaseOptimizer(ABC):
 
     @abstractmethod
     def serialize(self):
+        pass
+
+    @abstractmethod
+    def plot_history(self):
         pass
