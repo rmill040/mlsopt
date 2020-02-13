@@ -80,22 +80,21 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        subsampling = (log(0.40), log(1.0))
-        penalty     = (log(1e-4), log(10))
+        subsampling = (log(0.50), log(1.0))
 
         return {
-            'n_estimators'      : scope.int(hp.quniform('n_estimators', 10, 2000, 10)),
-            'max_depth'         : scope.int(hp.quniform('max_depth', 1, 12, 1)),
-            'min_child_weight'  : scope.int(hp.quniform('max_depth', 1, 20, 1)),
+            'n_estimators'      : scope.int(hp.quniform('n_estimators', 50, 2000, 50)),
+            'max_depth'         : scope.int(hp.quniform('max_depth', 1, 11, 1)),
+            'min_child_weight'  : scope.int(hp.quniform('min_child_weight', 1, 20, 1)),
             'max_delta_step'    : scope.int(hp.quniform('max_delta_step', 0, 3, 1)),
-            'learning_rate'     : hp.loguniform('learning_rate', log(1e-3), log(1)),
+            'learning_rate'     : hp.loguniform('learning_rate', log(1e-3), log(0.5)),
             'subsample'         : hp.loguniform('subsample', *subsampling),
             'colsample_bytree'  : hp.loguniform('colsample_bytree', *subsampling),
             'colsample_bylevel' : hp.loguniform('colsample_bylevel', *subsampling),
             'colsample_bynode'  : hp.loguniform('colsample_bynode', *subsampling),
-            'gamma'             : hp.loguniform('gamma', *penalty),
-            'reg_alpha'         : hp.loguniform('reg_alpha', *penalty),
-            'reg_lambda'        : hp.loguniform('reg_lambda', *penalty),
+            'gamma'             : hp.loguniform('gamma', log(1e-4), log(5)),
+            'reg_alpha'         : hp.loguniform('reg_alpha', log(1e-4), log(1)),
+            'reg_lambda'        : hp.loguniform('reg_lambda', log(1), log(4)),
             'base_score'        : hp.loguniform('base_score', log(0.01), log(0.99)),
             'scale_pos_weight'  : hp.loguniform('scale_pos_weight', log(0.1), log(10))
         }

@@ -34,6 +34,8 @@ class BernoulliFeatureSampler(BaseSampler):
         
         if feature_names is None:
             self._default_feature_names()
+        else:
+            self.feature_names = feature_names
         
         self.muting_threshold = muting_threshold
         self.support          = np.repeat(True, self.n_features)
