@@ -133,7 +133,7 @@ class BernoulliFeatureSampler(BaseSampler):
             selected &= self.support
             if not selected.sum():
                 _LOGGER.warn("no features selected in sampled space, " + \
-                             "reverting to original space")
+                             "reverting to previous space")
                 selected = self.support
 
         return selected

@@ -442,7 +442,8 @@ class GAOptimizer(BaseOptimizer):
                                  ], axis=1)
 
         # Write data to disk
-        df.to_csv(save_name, index=False)
+        df.sort_values(by='metric', ascending=self.lower_is_better)\
+          .to_csv(save_name, index=False)
         if self.verbose:
             _LOGGER.info(f"saved results to disk at {save_name}")
 

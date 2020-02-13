@@ -57,7 +57,11 @@ class RSOptimizer(BaseOptimizer):
         pass
 
     def _calculate_single_candidate(self,
-                                    objective):
+                                    objective,
+                                    candidate,
+                                    n_candidates,
+                                    i,
+                                    iteration):
         """ADD
         
         Parameters
@@ -66,14 +70,102 @@ class RSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        pass
+        if self.verbose:
+            if i % self.n_jobs == 0:
+                _LOGGER.info(f"evaluating candidate, {n_candidates - i} " + 
+                             "remaining")
+        
+        # Evaluate chromosome
+        results = objective(candidate, iteration)
+
+        # Check if failure occurred during objective func evaluation
+        if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
+            msg = "running candidate failed"
+            if 'message' in results.keys():
+                if results['message']: msg += f" because {results['message']}"
+            _LOGGER.warn(msg)
+            return {
+                'status'    : results['status'],
+                'metric'    : np.inf if self.lower_is_better else -np.inf,
+                'params'    : candidate,
+                'iteration' : iteration,
+                'id'        : i
+            }
+        
+        # Find best metric so far and compare results to see if current result is better
+        if self.lower_is_better:
+            if results['metric'] < self.best_results['metric']:
+                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                self.best_results['metric'] = results['metric']
+                self.best_results['params'] = candidate        
+        else:
+            if results['metric'] > self.best_results['metric']:
+                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                self.best_results['metric'] = results['metric']
+                self.best_results['params'] = candidate        
+ 
+        return {
+            'status'    : results['status'],
+            'metric'    : results['metric'],
+            'params'    : candidate,
+            'iteration' : iteration,
+            'id'        : i
+            }
+        
+    def _evaluate(self, objective, candidates, iteration):
+        """ADD
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        n_candidates = len(candidates)
+
+        # Calculate metrics for candidates
+        results = Parallel(n_jobs=self.n_jobs, verbose=False, backend=self.backend)\
+                    (delayed(self._calculate_single_candidate)
+                        (objective, candidate, n_candidates, i, iteration)
+                            for i, candidate in enumerate(candidates))
+
+        # Sort population based on metrics
+        results = sorted(results, 
+                         key=lambda x: x['metric'], 
+                         reverse=~self.lower_is_better)
+
+        # Add to history
+        self.history.append(results)
+
+        return results
+
+    def _update_space(self, sampler, hof):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        # Sort by best metrics
+        df = pd.DataFrame(self.history[-1])\
+               .sort_values(by='metric', ascending=self.lower_is_better)[:hof]
+
+        # Update sampler spaces
+        for sname in sampler.samplers.keys():
+            df_space = pd.DataFrame.from_records(
+                df['params'].apply(lambda x: x[sname]).values.tolist()
+            )
+            sampler.update_space(data=df_space, name=sname)
+
 
     def search(self,
                objective, 
                sampler, 
                lower_is_better,
-               subsample_factor=2,
-               max_iterations=5):
+               max_configs_per_round,
+               subsample_factor=2):
         """ADD
         
         Parameters
@@ -82,7 +174,50 @@ class RSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        pass
+        start = time.time()
+        
+        # Get feature names if specified in sampler
+        self._colmapper = {}
+        for sname, sdist in sampler.samplers.items():
+            if sdist.__type__ == 'feature':
+                self._colmapper[sname] = sdist.feature_names
+  
+        # Set attributes and best results
+        self.lower_is_better        = lower_is_better
+        self.best_results['metric'] = np.inf if lower_is_better else -np.inf
+
+        _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} jobs using " + 
+                     f"{self.backend} backend")
+
+        # Begin search
+        for iteration, n_configs in enumerate(max_configs_per_round, 1):
+            
+            if self.verbose:
+                msg = "\n" + "*"*40 + f"\niteration {iteration}\n" + "*"*40
+                _LOGGER.info(msg)
+
+            # Grab hof candidates for this round
+            hof = int(np.ceil(n_configs/subsample_factor))
+
+            # Sample space
+            candidates = sampler.sample_space(n_samples=n_configs)
+
+            # Evaluate candidates
+            results = self._evaluate(objective=objective,
+                                     candidates=candidates,
+                                     iteration=iteration)
+
+
+            # Update search space now
+            _LOGGER.info("updating search space")
+            self._update_space(sampler, hof)
+
+        # Finished
+        minutes = round((time.time() - start) / 60, 2)
+        if self.verbose:
+            _LOGGER.info(f"finished searching in {minutes} minutes")
+
+        return self
 
     def serialize(self, save_name):
         """ADD
@@ -109,7 +244,8 @@ class RSOptimizer(BaseOptimizer):
                                  ], axis=1)
 
         # Write data to disk
-        df.to_csv(save_name, index=False)
+        df.sort_values(by='metric', ascending=self.lower_is_better)\
+          .to_csv(save_name, index=False)
         if self.verbose:
             _LOGGER.info(f"saved results to disk at {save_name}")
 

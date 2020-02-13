@@ -147,6 +147,8 @@ class PipelineSampler(BaseSampler):
             _LOGGER.exception("sampler not initialized, space undefined")
             raise ValueError
         
+        if not self.dynamic_update: return
+
         try:
             self.samplers[name].update_space(data)
         except Exception as e:
