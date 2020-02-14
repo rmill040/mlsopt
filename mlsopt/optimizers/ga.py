@@ -106,11 +106,10 @@ class GAOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        if self.verbose:
-            if i % self.n_jobs == 0:
-                _LOGGER.info(f"evaluating chromosomes, {self.n_population - i} " + 
-                             "remaining")
-        
+        if self.verbose and i % self.n_jobs == 0:
+            _LOGGER.info(f"evaluating chromosomes, {self.n_population - i} " + 
+                            "remaining")
+    
         # Evaluate chromosome
         results = objective(chromosome)
 
@@ -131,12 +130,14 @@ class GAOptimizer(BaseOptimizer):
         # Find best metric so far and compare results to see if current result is better
         if self.lower_is_better:
             if results['metric'] < self.best_results['metric']:
-                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
                 self.best_results['metric'] = results['metric']
                 self.best_results['params'] = chromosome        
         else:
             if results['metric'] > self.best_results['metric']:
-                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
                 self.best_results['metric'] = results['metric']
                 self.best_results['params'] = chromosome        
  
@@ -366,7 +367,7 @@ class GAOptimizer(BaseOptimizer):
         ----------
         
         Returns
-        -------
+        -------p
         
         """
         start = time.time()
@@ -379,9 +380,10 @@ class GAOptimizer(BaseOptimizer):
   
         # Set this as an attribute
         self.lower_is_better = lower_is_better
-
-        _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} jobs using " + 
-                     f"{self.backend} backend")
+        
+        if self.verbose:
+            _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
+                         f"jobs using {self.backend} backend")
 
         # Initialize population and set best results
         population                  = sampler.sample_space(n_samples=self.n_population)

@@ -26,11 +26,23 @@ class PSOptimizer(BaseOptimizer):
     """
     def __init__(self, 
                  n_particles,
+                 omega_bounds=(0.10, 0.90),
+                 v_bounds=None,
+                 phi_p=1.0,
+                 phi_g=2.0,
+                 max_iterations=10,
+                 tolerance=1e-6,
                  n_jobs=1,
                  backend='loky',
                  verbose=0,
                  seed=None):
-        self.n_particles = n_particles
+        self.n_particles    = n_particles
+        self.omega_bounds   = omega_bounds
+        self.v_bounds       = v_bounds
+        self.phi_p          = phi_p
+        self.phi_g          = phi_g
+        self.max_iterations = max_iterations
+        self.tolerance      = tolerance
 
         super().__init__(backend=backend,
                          n_jobs=n_jobs,
@@ -192,11 +204,10 @@ class PSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        if self.verbose:
-            if i % self.n_jobs == 0:
-                _LOGGER.info(f"evaluating particle, {self.n_particles - i} " + 
-                             "remaining")
-        
+        if self.verbose and i % self.n_jobs == 0:
+            _LOGGER.info(f"evaluating particle, {self.n_particles - i} " + 
+                            "remaining")
+    
         # Evaluate particle
         results = objective(particle)
 
@@ -217,12 +228,14 @@ class PSOptimizer(BaseOptimizer):
         # Find best metric so far and compare results to see if current result is better
         if self.lower_is_better:
             if results['metric'] < self.best_results['metric']:
-                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
                 self.best_results['metric'] = results['metric']
                 self.best_results['params'] = particle        
         else:
             if results['metric'] > self.best_results['metric']:
-                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
                 self.best_results['metric'] = results['metric']
                 self.best_results['params'] = particle        
  
@@ -424,13 +437,7 @@ class PSOptimizer(BaseOptimizer):
     def search(self, 
                objective, 
                sampler, 
-               lower_is_better,
-               omega_bounds=(0.10, 0.90),
-               v_bounds=None,
-               phi_p=1.0,
-               phi_g=2.0,
-               max_iterations=10,
-               tolerance=1e-6):
+               lower_is_better):
         """ADD
         
         Parameters
@@ -449,10 +456,10 @@ class PSOptimizer(BaseOptimizer):
 
         # Set attributes
         self.lower_is_better = lower_is_better
-        self.tolerance       = tolerance
 
-        _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} jobs using " + 
-                     f"{self.backend} backend")
+        if self.verbose:
+            _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
+                         f"jobs using {self.backend} backend")
 
         # Create swarm and set best results
         if self.verbose: _LOGGER.info("initializing swarm")
@@ -482,15 +489,15 @@ class PSOptimizer(BaseOptimizer):
         gbest_o      = params.pop("gbest_o")
         
         iteration = 1
-        while iteration <= max_iterations:
+        while iteration <= self.max_iterations:
             
             if self.verbose:
                 msg = "\n" + "*"*40 + f"\niteration {iteration}\n" + "*"*40
                 _LOGGER.info(msg)
 
             # Iteratively update omega
-            omega = omega_bounds[1] - \
-                        iteration * ((omega_bounds[1] - omega_bounds[0]) / max_iterations)
+            omega = self.omega_bounds[1] - \
+                        iteration * ((self.omega_bounds[1] - self.omega_bounds[0]) / self.max_iterations)
 
             # Get current best results
             best = self._get_best_results(pbest_x=pbest_x,
@@ -515,15 +522,15 @@ class PSOptimizer(BaseOptimizer):
                 rp   = self.rg.uniform(size=size)
                 rg   = self.rg.uniform(size=size)
                 b_v  = omega*b_v + \
-                        phi_p*rp*(b_pbest_x - b_x) + \
-                        phi_g*rg*(b_gbest_x - b_x)
+                        self.phi_p*rp*(b_pbest_x - b_x) + \
+                        self.phi_g*rg*(b_gbest_x - b_x)
 
                 # # Adjust particle velocities based on bounds
-                if v_bounds:
-                    mask_lb = b_v < v_bounds[0]
-                    mask_ub = b_v > v_bounds[1]
+                if self.v_bounds:
+                    mask_lb = b_v < self.v_bounds[0]
+                    mask_ub = b_v > self.v_bounds[1]
                     b_v     = b_v*(~np.logical_or(mask_lb, mask_ub)) + \
-                                v_bounds[0]*mask_lb + v_bounds[1]*mask_ub
+                                self.v_bounds[0]*mask_lb + self.v_bounds[1]*mask_ub
                     
                 # Update particle positions using sigmoid transfer function
                 s   = self._sigmoid(b_v)
@@ -540,15 +547,15 @@ class PSOptimizer(BaseOptimizer):
                 rp   = self.rg.uniform(size=size)
                 rg   = self.rg.uniform(size=size)
                 c_v  = omega*c_v + \
-                        phi_p*rp*(c_pbest_x - c_x) + \
-                        phi_g*rg*(c_gbest_x - c_x)
+                        self.phi_p*rp*(c_pbest_x - c_x) + \
+                        self.phi_g*rg*(c_gbest_x - c_x)
 
                 # # Adjust particle velocities based on bounds
-                if v_bounds:
-                    mask_lb = c_v < v_bounds[0]
-                    mask_ub = c_v > v_bounds[1]
+                if self.v_bounds:
+                    mask_lb = c_v < self.v_bounds[0]
+                    mask_ub = c_v > self.v_bounds[1]
                     c_v     = c_v*(~np.logical_or(mask_lb, mask_ub)) + \
-                                v_bounds[0]*mask_lb + v_bounds[1]*mask_ub
+                                self.v_bounds[0]*mask_lb + self.v_bounds[1]*mask_ub
 
                 # Update particle positions
                 c_x += c_v
@@ -594,13 +601,13 @@ class PSOptimizer(BaseOptimizer):
             if converged:
                 if self.verbose:
                     _LOGGER.info("optimization converged: " + 
-                                f"{iteration}/{max_iterations} - stopping " + 
+                                f"{iteration}/{self.max_iterations} - stopping " + 
                                 "criteria below tolerance")
                 break
 
             if new_best and self.verbose:
                 _LOGGER.info("new swarm best: " + 
-                            f"{iteration}/{max_iterations} - {round(gbest_o, 4)}")
+                            f"{iteration}/{self.max_iterations} - {round(gbest_o, 4)}")
 
             # Continue optimization
             iteration += 1

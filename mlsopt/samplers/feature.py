@@ -11,6 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 # TODO:
 # 1. Add error checking
 # 2. Add unit tests
+# 3. add verbose as argument
 
 class BernoulliFeatureSampler(BaseSampler):
     """Probabilistic sampler for feature space with options of dynamic updates 

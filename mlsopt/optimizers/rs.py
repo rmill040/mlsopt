@@ -25,10 +25,19 @@ class RSOptimizer(BaseOptimizer):
     ----------
     """
     def __init__(self, 
+                 n_configs,
+                 max_iterations,
+                 subsample_factor=2,
+                 dynamic_update=True,
                  n_jobs=1,
                  backend='loky',
                  verbose=0,
                  seed=None):
+        self.n_configs        = n_configs
+        self.max_iterations   = max_iterations
+        self.subsample_factor = subsample_factor
+        self.dynamic_update   = dynamic_update
+
         super().__init__(backend=backend,
                          n_jobs=n_jobs,
                          verbose=verbose,
@@ -56,12 +65,11 @@ class RSOptimizer(BaseOptimizer):
         """
         pass
 
-    def _calculate_single_candidate(self,
-                                    objective,
-                                    candidate,
-                                    n_candidates,
-                                    i,
-                                    iteration):
+    def _calculate_single_config(self,
+                                 objective,
+                                 config,
+                                 i,
+                                 iteration):
         """ADD
         
         Parameters
@@ -70,24 +78,23 @@ class RSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        if self.verbose:
-            if i % self.n_jobs == 0:
-                _LOGGER.info(f"evaluating candidate, {n_candidates - i} " + 
-                             "remaining")
+        if self.verbose and i % self.n_jobs == 0:
+            _LOGGER.info(f"evaluating config, {self.n_configs - i} " + 
+                            "remaining")
         
         # Evaluate chromosome
-        results = objective(candidate, iteration)
+        results = objective(config, iteration)
 
         # Check if failure occurred during objective func evaluation
         if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
-            msg = "running candidate failed"
+            msg = "running config failed"
             if 'message' in results.keys():
                 if results['message']: msg += f" because {results['message']}"
             _LOGGER.warn(msg)
             return {
                 'status'    : results['status'],
                 'metric'    : np.inf if self.lower_is_better else -np.inf,
-                'params'    : candidate,
+                'params'    : config,
                 'iteration' : iteration,
                 'id'        : i
             }
@@ -95,24 +102,26 @@ class RSOptimizer(BaseOptimizer):
         # Find best metric so far and compare results to see if current result is better
         if self.lower_is_better:
             if results['metric'] < self.best_results['metric']:
-                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
                 self.best_results['metric'] = results['metric']
-                self.best_results['params'] = candidate        
+                self.best_results['params'] = config        
         else:
             if results['metric'] > self.best_results['metric']:
-                _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
                 self.best_results['metric'] = results['metric']
-                self.best_results['params'] = candidate        
+                self.best_results['params'] = config        
  
         return {
             'status'    : results['status'],
             'metric'    : results['metric'],
-            'params'    : candidate,
+            'params'    : config,
             'iteration' : iteration,
             'id'        : i
             }
         
-    def _evaluate(self, objective, candidates, iteration):
+    def _evaluate(self, objective, configs, iteration):
         """ADD
 
         Parameters
@@ -121,13 +130,11 @@ class RSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        n_candidates = len(candidates)
-
-        # Calculate metrics for candidates
+        # Calculate metrics for configs
         results = Parallel(n_jobs=self.n_jobs, verbose=False, backend=self.backend)\
-                    (delayed(self._calculate_single_candidate)
-                        (objective, candidate, n_candidates, i, iteration)
-                            for i, candidate in enumerate(candidates))
+                    (delayed(self._calculate_single_config)
+                        (objective, config, i, iteration)
+                            for i, config in enumerate(configs))
 
         # Sort population based on metrics
         results = sorted(results, 
@@ -163,9 +170,7 @@ class RSOptimizer(BaseOptimizer):
     def search(self,
                objective, 
                sampler, 
-               lower_is_better,
-               max_configs_per_round,
-               subsample_factor=2):
+               lower_is_better):
         """ADD
         
         Parameters
@@ -185,32 +190,35 @@ class RSOptimizer(BaseOptimizer):
         # Set attributes and best results
         self.lower_is_better        = lower_is_better
         self.best_results['metric'] = np.inf if lower_is_better else -np.inf
-
-        _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} jobs using " + 
-                     f"{self.backend} backend")
+        
+        if self.verbose:
+            _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
+                         f"jobs using {self.backend} backend")
 
         # Begin search
-        for iteration, n_configs in enumerate(max_configs_per_round, 1):
+        for iteration in range(1, self.max_iterations + 1):
             
             if self.verbose:
                 msg = "\n" + "*"*40 + f"\niteration {iteration}\n" + "*"*40
                 _LOGGER.info(msg)
 
-            # Grab hof candidates for this round
-            hof = int(np.ceil(n_configs/subsample_factor))
+            # Grab hof configs for this round
+            hof = int(np.ceil(self.n_configs/self.subsample_factor))
 
             # Sample space
-            candidates = sampler.sample_space(n_samples=n_configs)
+            configs = sampler.sample_space(n_samples=self.n_configs)
 
-            # Evaluate candidates
+            # Evaluate configs
             results = self._evaluate(objective=objective,
-                                     candidates=candidates,
+                                     configs=configs,
                                      iteration=iteration)
 
 
             # Update search space now
-            _LOGGER.info("updating search space")
-            self._update_space(sampler, hof)
+            if self.dynamic_update:
+                if self.verbose:
+                    _LOGGER.info("updating search space")
+                self._update_space(sampler, hof)
 
         # Finished
         minutes = round((time.time() - start) / 60, 2)

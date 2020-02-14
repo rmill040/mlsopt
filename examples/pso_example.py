@@ -80,6 +80,12 @@ def main():
     # Most of these parameters are set to the default, but are explicitly
     # specified for sake of example
     opt = PSOptimizer(n_particles=50,
+                      max_iterations=5,
+                      omega_bounds=(0.10, 0.90),
+                      v_bounds=None,
+                      phi_p=1.0,
+                      phi_g=2.0,
+                      tolerance=1e-6,
                       verbose=1, 
                       n_jobs=-1,
                       backend='loky',
@@ -87,8 +93,7 @@ def main():
 
     opt.search(objective=objective, 
               sampler=sampler, 
-              lower_is_better=False,
-              max_iterations=5)
+              lower_is_better=False)
     
     opt.serialize('psoptimizer_results.csv')
     opt.plot_history()

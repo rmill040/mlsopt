@@ -82,16 +82,17 @@ def main():
 
     # Most of these parameters are set to the default, but are explicitly
     # specified for sake of example
-    opt = RSOptimizer(verbose=1, 
+    opt = RSOptimizer(n_configs=40,
+                      max_iterations=5,
+                      subsample_factor=2,
+                      verbose=1, 
                       n_jobs=-1,
                       backend='loky',
                       seed=1718)
 
     opt.search(objective=objective, 
                sampler=sampler, 
-               lower_is_better=False,
-               max_configs_per_round=[110, 10, 10, 10, 10],
-               subsample_factor=2)
+               lower_is_better=False)
 
     opt.serialize('rsoptimizer_results.csv')
     opt.plot_history()

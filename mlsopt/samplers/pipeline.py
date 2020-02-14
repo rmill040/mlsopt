@@ -14,11 +14,11 @@ class PipelineSampler(BaseSampler):
     Parameters
     ----------
     """
-    def __init__(self, dynamic_update=False):
+    def __init__(self):
         self.samplers     = {}
         self._initialized = False
 
-        super().__init__(dynamic_update=dynamic_update)
+        super().__init__(dynamic_update=True)
 
     def __str__(self):
         """ADD
@@ -147,8 +147,6 @@ class PipelineSampler(BaseSampler):
             _LOGGER.exception("sampler not initialized, space undefined")
             raise ValueError
         
-        if not self.dynamic_update: return
-
         try:
             self.samplers[name].update_space(data)
         except Exception as e:
