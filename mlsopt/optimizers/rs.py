@@ -80,7 +80,7 @@ class RSOptimizer(BaseOptimizer):
         """
         if self.verbose and i % self.n_jobs == 0:
             _LOGGER.info(f"evaluating config, {self.n_configs - i} " + 
-                            "remaining")
+                         "remaining")
         
         # Evaluate chromosome
         results = objective(config, iteration)

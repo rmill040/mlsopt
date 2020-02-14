@@ -145,22 +145,26 @@ class PSOptimizer(BaseOptimizer):
         c_lb = np.array(c_lb)
         c_ub = np.array(c_ub)
 
-        rv = self.rg.uniform
+        rv       = self.rng.uniform
+        _samples = sampler.sample_space(n_samples=self.n_particles, 
+                                        return_combined=False)
 
         # Initialize binary particle positions and velocities
-        diff = b_ub - b_lb
-        b_x  = np.round(rv(size=(self.n_particles, b_dimensions)))
-        b_v  = np.column_stack(
-            [rv(-diff[i], diff[i], size=self.n_particles) for i in range(b_dimensions)]
-            )
-    
+        if b_sname:
+            diff = b_ub - b_lb
+            b_x  = _samples[b_sname].values.astype(float)
+            b_v  = np.column_stack(
+                [rv(-diff[i], diff[i], size=self.n_particles) for i in range(b_dimensions)]
+                )
+
         # Initialize continuous particle positions and velocities
-        pts  = rv(size=(self.n_particles, c_dimensions))
-        diff = c_ub - c_lb
-        c_x  = c_lb + pts * (c_ub - c_lb)
-        c_v  = np.column_stack(
-            [rv(-diff[i], diff[i], size=self.n_particles) for i in range(c_dimensions)]
-            )
+        if c_sname:
+            pts  = rv(size=(self.n_particles, c_dimensions))
+            diff = c_ub - c_lb
+            c_x  = _samples[c_sname][c_pnames].values.astype(float)
+            c_v  = np.column_stack(
+                [rv(-diff[i], diff[i], size=self.n_particles) for i in range(c_dimensions)]
+                )
         
         # Initialize particle best and swarm best results
         pbest_x = np.zeros((self.n_particles, b_dimensions + c_dimensions))
@@ -206,7 +210,7 @@ class PSOptimizer(BaseOptimizer):
         """
         if self.verbose and i % self.n_jobs == 0:
             _LOGGER.info(f"evaluating particle, {self.n_particles - i} " + 
-                            "remaining")
+                         "remaining")
     
         # Evaluate particle
         results = objective(particle)
@@ -519,8 +523,8 @@ class PSOptimizer(BaseOptimizer):
             if b_dimensions:
                 # Update particle velocities
                 size = (self.n_particles, b_dimensions)
-                rp   = self.rg.uniform(size=size)
-                rg   = self.rg.uniform(size=size)
+                rp   = self.rng.uniform(size=size)
+                rg   = self.rng.uniform(size=size)
                 b_v  = omega*b_v + \
                         self.phi_p*rp*(b_pbest_x - b_x) + \
                         self.phi_g*rg*(b_gbest_x - b_x)
@@ -534,7 +538,7 @@ class PSOptimizer(BaseOptimizer):
                     
                 # Update particle positions using sigmoid transfer function
                 s   = self._sigmoid(b_v)
-                r   = self.rg.uniform(size=s.shape)
+                r   = self.rng.uniform(size=s.shape)
                 b_x = (r < s).astype(int)
 
             ########################
@@ -544,8 +548,8 @@ class PSOptimizer(BaseOptimizer):
             if c_dimensions:
                 # Update particle velocities
                 size = (self.n_particles, c_dimensions)
-                rp   = self.rg.uniform(size=size)
-                rg   = self.rg.uniform(size=size)
+                rp   = self.rng.uniform(size=size)
+                rg   = self.rng.uniform(size=size)
                 c_v  = omega*c_v + \
                         self.phi_p*rp*(c_pbest_x - c_x) + \
                         self.phi_g*rg*(c_gbest_x - c_x)

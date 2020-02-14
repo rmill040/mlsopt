@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
 from multiprocessing import cpu_count, Manager
-from numpy.random import Generator, PCG64
+from numpy.random import RandomState
 
 __all__ = ["BaseOptimizer"]
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +30,8 @@ class BaseOptimizer(ABC):
         self.n_jobs = n_jobs
 
         self.verbose = verbose
-        self.rg      = Generator(PCG64(seed=seed))
+        self.seed    = seed
+        self.rng     = RandomState(seed=seed)
         self.history = []
 
         # Keep track of best results

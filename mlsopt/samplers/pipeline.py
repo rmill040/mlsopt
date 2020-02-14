@@ -14,11 +14,11 @@ class PipelineSampler(BaseSampler):
     Parameters
     ----------
     """
-    def __init__(self):
+    def __init__(self, seed=None):
         self.samplers     = {}
         self._initialized = False
 
-        super().__init__(dynamic_update=True)
+        super().__init__(dynamic_update=True, seed=seed)
 
     def __str__(self):
         """ADD
@@ -80,6 +80,8 @@ class PipelineSampler(BaseSampler):
                          f"replacing sampler with new <{sampler.__type__}> " + \
                          "sampler")
         
+        # Add sampler with updated seed
+        sampler.seed        = self.seed
         self.samplers[name] = sampler
         self._initialized   = True
         return self

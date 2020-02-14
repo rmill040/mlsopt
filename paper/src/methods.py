@@ -44,7 +44,7 @@ CV          = partial(cross_val_score, cv=_SKF)
 _LOGGER = logging.getLogger(__name__)
 
 
-def tpe_optimizer(X, y, name, model, scoring, add_noise):
+def tpe_optimizer(X, y, name, model, scoring, add_noise, rng):
     """ADD
     
     Parameters
@@ -105,7 +105,8 @@ def tpe_optimizer(X, y, name, model, scoring, add_noise):
                   space=space,
                   algo=hyperopt.tpe.suggest,
                   trials=trials,
-                  max_evals=200)
+                  max_evals=200,
+                  rstate=rng)
     
     # Total time
     minutes = (time.time() - start) / 60

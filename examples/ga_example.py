@@ -27,7 +27,7 @@ def main():
 
     feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1])
     hp_sampler      = XGBClassifierSampler()
-    sampler         = PipelineSampler()\
+    sampler         = PipelineSampler(seed=SEED)\
                         .register_sampler(feature_sampler, name='feature')\
                         .register_sampler(hp_sampler, name='hp')
 

@@ -1,15 +1,18 @@
 from abc import ABC, abstractmethod
+from numpy.random import RandomState
 
 __all__ = ["BaseSampler"]
 
 
 class BaseSampler(ABC):
     """Base sampler class.
-    """    
+    """
     @abstractmethod
     def __init__(self, dynamic_update, seed=None):
         self.dynamic_update = dynamic_update
         self._valid_sampler = True
+        self.seed           = seed
+        self.rng            = RandomState(2)
 
     @abstractmethod
     def __str__(self):

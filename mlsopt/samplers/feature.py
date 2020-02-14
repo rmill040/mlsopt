@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from hyperopt import hp
 import logging
 import numpy as np
@@ -27,7 +28,8 @@ class BernoulliFeatureSampler(BaseSampler):
                  selection_probs=None,
                  feature_names=None,
                  muting_threshold=0.0,
-                 dynamic_update=False):
+                 dynamic_update=False,
+                 seed=None):
         self.n_features = n_features
 
         if selection_probs is None:
@@ -41,7 +43,7 @@ class BernoulliFeatureSampler(BaseSampler):
         self.muting_threshold = muting_threshold
         self.support          = np.repeat(True, self.n_features)
 
-        super().__init__(dynamic_update=dynamic_update)
+        super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
         """ADD
@@ -128,10 +130,10 @@ class BernoulliFeatureSampler(BaseSampler):
         Returns
         -------
         """
-        selected = np.random.binomial(1, 
-                                      self.selection_probs, 
-                                      self.n_features)\
-                                          .astype(bool)
+        selected = self.rng.binomial(1, 
+                                     self.selection_probs, 
+                                     self.n_features)\
+                                        .astype(bool)
         if self.dynamic_update:
             selected &= self.support
             if not selected.sum():

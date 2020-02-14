@@ -30,7 +30,7 @@ def main():
                                               dynamic_update=True)
     hp_sampler      = XGBClassifierSampler(dynamic_update=True,
                                            early_stopping=False)
-    sampler         = PipelineSampler(dynamic_update=True)\
+    sampler         = PipelineSampler(seed=SEED)\
                         .register_sampler(feature_sampler, name='feature')\
                         .register_sampler(hp_sampler, name='hp')
 
@@ -82,11 +82,11 @@ def main():
 
     # Most of these parameters are set to the default, but are explicitly
     # specified for sake of example
-    opt = RSOptimizer(n_configs=40,
+    opt = RSOptimizer(n_configs=50,
                       max_iterations=5,
                       subsample_factor=2,
                       verbose=1, 
-                      n_jobs=-1,
+                      n_jobs=1,
                       backend='loky',
                       seed=1718)
 

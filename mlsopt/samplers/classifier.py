@@ -28,13 +28,14 @@ class XGBClassifierSampler(BaseSampler):
     def __init__(self, 
                  space=None,
                  dynamic_update=False, 
-                 early_stopping=False):        
+                 early_stopping=False,
+                 seed=None):        
         self.early_stopping = early_stopping
         
         if space is None:
             self.space = self._init_space()
         
-        super().__init__(dynamic_update=dynamic_update)
+        super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
         """ADD
@@ -108,7 +109,7 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        return sample(self.space)
+        return sample(self.space, rng=self.rng)
 
     def update_space(self, data=None):
         """ADD
@@ -159,14 +160,15 @@ class LGBMClassifierSampler:
     def __init__(self, 
                  space=None,
                  dynamic_update=False, 
-                 early_stopping=False):
+                 early_stopping=False,
+                 seed=None):
         self.dynamic_update = dynamic_update
         self.early_stopping = early_stopping
         
         if space is None:
             self.space = self._init_space()
         
-        super().__init__(dynamic_update=dynamic_update)
+        super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
         """ADD
@@ -218,14 +220,15 @@ class SGBMClassifierSampler:
     def __init__(self, 
                  space=None,
                  dynamic_update=False, 
-                 early_stopping=False):
+                 early_stopping=False,
+                 seed=None):
         self.dynamic_update = dynamic_update
         self.early_stopping = early_stopping
         
         if space is None:
             self.space = self._init_space()
         
-        super().__init__(dynamic_update=dynamic_update)
+        super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
         """ADD

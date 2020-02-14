@@ -11,10 +11,12 @@ import time
 import methods
 
 # Constants
-SAVE_NAME = 'experiment.csv'
-DATA_DIR  = join(Path(__file__).resolve().parents[1], 'data')
+MAIN_DIR  = Path(__file__).resolve().parents[1]
+DATA_DIR  = join(MAIN_DIR, 'data')
+SAVE_NAME = join(DATA_DIR, 'experiment1.csv')
 DATA_SETS = [f for f in os.listdir(DATA_DIR) if f.endswith(".csv")]
 SEED      = 1718
+RNG       = np.random.RandomState(seed=SEED)
 
 # Define logger
 logging.basicConfig(
@@ -57,7 +59,7 @@ def load_data(name, labels='original', add_noise=False):
 
     # Double feature space by shuffling features
     if add_noise:
-        X_s = X.apply(np.random.permutation, axis=0)\
+        X_s = X.apply(RNG.permutation(), axis=0)\
                .add_suffix("_s")
         X   = pd.concat([X, X_s], axis=1)
     
@@ -109,6 +111,12 @@ def main():
     """Main function to run classifier experiment"""
 
     start = time.time()
+
+    for name in DATA_SETS:
+        X, y = load_data(name)
+        print(name)
+        print(y.value_counts())
+    quit()
     
     # Begin experiments
     summary = []
@@ -153,12 +161,12 @@ def main():
                     }
 
                     # 1. Tree of parzen estimators
-                    # results = methods.tpe_optimizer(**kwargs)
+                    # results = methods.tpe_optimizer(**kwargs, rng=RNG)
                     # update_results(**current, **results)
                     # del results
 
                     # 2. Feature selection and grid search
-                    results = methods.fs_with_grid_search(**kwargs)
+                    results = methods.fs_with_grid_search(**kwargs, rng=RNG)
                     update_results(**current, **results)
                     del results
 

@@ -108,7 +108,7 @@ class GAOptimizer(BaseOptimizer):
         """
         if self.verbose and i % self.n_jobs == 0:
             _LOGGER.info(f"evaluating chromosomes, {self.n_population - i} " + 
-                            "remaining")
+                         "remaining")
     
         # Evaluate chromosome
         results = objective(chromosome)
