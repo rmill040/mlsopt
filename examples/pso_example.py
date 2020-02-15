@@ -92,8 +92,8 @@ def main():
                       seed=1718)
 
     opt.search(objective=objective, 
-              sampler=sampler, 
-              lower_is_better=False)
+               sampler=sampler, 
+               lower_is_better=False)
     
     opt.serialize('psoptimizer_results.csv')
     opt.plot_history()

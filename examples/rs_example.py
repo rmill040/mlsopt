@@ -38,8 +38,8 @@ def main():
     # Define Objective Function #
     #############################
 
-    def objective(params, iteration): 
-        """Objective function to maximize using particle swarm optimization.
+    def objective(params): 
+        """Objective function to maximize using random search.
 
         Parameters
         ----------

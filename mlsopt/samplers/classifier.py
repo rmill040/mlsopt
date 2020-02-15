@@ -48,7 +48,7 @@ class XGBClassifierSampler(BaseSampler):
         """
         return f"XGBClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
                f"{self.dynamic_update}, early_stopping={self.early_stopping}, " + \
-               f"seed={seed})"
+               f"seed={self.seed})"
 
     def __repr__(self):
         """ADD
@@ -85,7 +85,7 @@ class XGBClassifierSampler(BaseSampler):
         subsampling = (log(0.50), log(1.0))
 
         return {
-            'n_estimators'      : scope.int(hp.quniform('n_estimators', 50, 2000, 50)),
+            'n_estimators'      : scope.int(hp.quniform('n_estimators', 50, 500, 50)),
             'max_depth'         : scope.int(hp.quniform('max_depth', 1, 11, 1)),
             'min_child_weight'  : scope.int(hp.quniform('min_child_weight', 1, 20, 1)),
             'max_delta_step'    : scope.int(hp.quniform('max_delta_step', 0, 3, 1)),
@@ -242,7 +242,7 @@ class SGBMClassifierSampler(BaseSampler):
         """
         return f"SGBMClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
                f"{self.dynamic_update}, early_stopping={self.early_stopping}, " + \
-               f"seed={seed})"
+               f"seed={self.seed})"
 
     def __repr__(self):
         """ADD
@@ -279,7 +279,7 @@ class SGBMClassifierSampler(BaseSampler):
         subsampling = (log(0.50), log(1.0))
 
         return {
-            'n_estimators'          : scope.int(hp.quniform('n_estimators', 50, 2000, 50)),
+            'n_estimators'          : scope.int(hp.quniform('n_estimators', 50, 500, 50)),
             'max_depth'             : scope.int(hp.quniform('max_depth', 1, 11, 1)),
             'min_impurity_decrease' : hp.loguniform('min_impurity_decrease', log(1e-4), log(0.20)),
             'learning_rate'         : hp.loguniform('learning_rate', log(1e-3), log(0.5)),

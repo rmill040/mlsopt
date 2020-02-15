@@ -11,13 +11,13 @@ import time
 import methods
 
 # Constants
-MAIN_DIR       = Path(__file__).resolve().parents[1]
-DATA_DIR       = join(MAIN_DIR, 'data')
-SAVE_NAME      = join(DATA_DIR, 'experiment1.csv')
-DATA_SETS      = [f for f in os.listdir(DATA_DIR) if f.endswith(".csv")]
-SEED           = 1718
-RNG            = np.random.RandomState(seed=SEED)
-MAX_ITERATIONS = 200
+MAIN_DIR    = Path(__file__).resolve().parents[1]
+DATA_DIR    = join(MAIN_DIR, 'data')
+SAVE_NAME   = join(join(MAIN_DIR, 'results'), 'experiment1.csv')
+DATA_SETS   = [f for f in os.listdir(DATA_DIR) if f.endswith(".csv")]
+SEED        = 1718
+RNG         = np.random.RandomState(seed=SEED)
+MAX_CONFIGS = 200
 
 # Define logger
 logging.basicConfig(
@@ -81,7 +81,8 @@ def update_results(*,
                    add_noise,
                    labels,
                    scoring,
-                   max_iterations,
+                   idx,
+                   max_configs,
                    n_samples,
                    n_features,
                    n_classes,
@@ -91,18 +92,19 @@ def update_results(*,
     """ADD HERE.
     """
     summary.append({
-        'model'          : model,
-        'name'           : name,
-        'add_noise'      : add_noise,
-        'labels'         : labels,
-        'scoring'        : scoring,
-        'max_iterations' : max_iterations,
-        'n_samples'      : n_samples,
-        'n_features'     : n_features,
-        'n_classes'      : n_classes,
-        'method'         : method,
-        'metric'         : metric,
-        'time'           : time
+        'model'       : model,
+        'name'        : name,
+        'add_noise'   : add_noise,
+        'labels'      : labels,
+        'scoring'     : scoring,
+        'idx'         : idx,
+        'max_configs' : max_configs,
+        'n_samples'   : n_samples,
+        'n_features'  : n_features,
+        'n_classes'   : n_classes,
+        'method'      : method,
+        'metric'      : metric,
+        'time'        : time
     })
     
 
@@ -116,7 +118,7 @@ def main():
     for labels in ['original', 'ova']:
         scoring = 'accuracy' if labels == 'original' else 'roc_auc'
         for model in ['xgb', 'sgbm']:
-            for name in DATA_SETS:   
+            for name in ['cancer.csv']:   
                 for add_noise in [False, True]: 
 
                     # Load data
@@ -132,62 +134,64 @@ def main():
 
                     # Data structure to hold current experimental results
                     current = {
-                                'summary'        : summary,
-                                'model'          : model,
-                                'name'           : name,
-                                'labels'         : labels,
-                                'scoring'        : scoring,
-                                'max_iterations' : MAX_ITERATIONS,
-                                'add_noise'      : add_noise,
-                                'n_samples'      : X.shape[0],
-                                'n_features'     : X.shape[1],
-                                'n_classes'      : len(np.unique(y)),
+                                'summary'     : summary,
+                                'model'       : model,
+                                'name'        : name,
+                                'labels'      : labels,
+                                'scoring'     : scoring,
+                                'max_configs' : MAX_CONFIGS,
+                                'add_noise'   : add_noise,
+                                'n_samples'   : X.shape[0],
+                                'n_features'  : X.shape[1],
+                                'n_classes'   : len(np.unique(y)),
                             }
 
                     # Keyword args for methods
                     kwargs = {
-                        'X'              : X,
-                        'y'              : y,
-                        'name'           : name,
-                        'model'          : model,
-                        'add_noise'      : add_noise,
-                        'max_iterations' : MAX_ITERATIONS,
-                        'scoring'        : scoring
+                        'X'           : X,
+                        'y'           : y,
+                        'name'        : name,
+                        'model'       : model,
+                        'max_configs' : MAX_CONFIGS,
+                        'scoring'     : scoring
                     }
 
                     # 1. Tree of parzen estimators
-                    results = methods.tpe_optimizer(**kwargs, rng=RNG)
+                    results = methods.tpe_optimizer(**kwargs, add_noise=add_noise, rng=RNG)
                     update_results(**current, **results)
                     del results
 
                     # 2. Feature selection and grid search
-                    results = methods.fs_with_grid_search(**kwargs, rng=RNG)
+                    results = methods.fs_with_grid_search(**kwargs)
                     update_results(**current, **results)
                     del results
 
                     # 3. Random search (no dynamic updates)
-                    results = methods.rs_optimizer(**kwargs)
+                    results = methods.rs_optimizer(**kwargs, dynamic_update=False)
                     update_results(**current, **results)
                     del results
                     
                     # 4. Random search (with dynamic updates)
-                    results = methods.rs_optimizer(**kwargs)
-                    update_results(**current, **results)
+                    results = methods.rs_optimizer(**kwargs, dynamic_update=True)
+                    update_results(**current, **results)                    
                     del results
 
                     # 5. Particle swarm optimization
                     results = methods.ps_optimizer(**kwargs)
-                    update_results(**current, **results)
+                    update_results(**current, **results)                    
                     del results
 
                     # 6. Genetic algorithm
                     results = methods.ga_optimizer(**kwargs)
-                    update_results(**current, **results)
+                    update_results(**current, **results)                   
                     del results
 
     # Finished
     minutes = round((time.time() - start) / 60., 2)
     _LOGGER.info(f"finished all experiments in {minutes} minutes")
+
+    # Write results to disk
+    pd.DataFrame(summary).to_csv(SAVE_NAME, index=False)
 
 if __name__ == '__main__':
     main()

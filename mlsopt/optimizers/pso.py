@@ -466,7 +466,8 @@ class PSOptimizer(BaseOptimizer):
                          f"jobs using {self.backend} backend")
 
         # Create swarm and set best results
-        if self.verbose: _LOGGER.info("initializing swarm")
+        if self.verbose: 
+            _LOGGER.info("initializing swarm")
         params                      = self._initialize_swarm(sampler)
         self.best_results['metric'] = np.inf if lower_is_better else -np.inf
         

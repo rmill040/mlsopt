@@ -41,7 +41,7 @@ class RSOptimizer(BaseOptimizer):
         super().__init__(backend=backend,
                          n_jobs=n_jobs,
                          verbose=verbose,
-                         seed=seed)   
+                         seed=seed)
     
     def __str__(self):
         """ADD
@@ -82,8 +82,8 @@ class RSOptimizer(BaseOptimizer):
             _LOGGER.info(f"evaluating config, {self.n_configs - i} " + 
                          "remaining")
         
-        # Evaluate chromosome
-        results = objective(config, iteration)
+        # Evaluate configuration
+        results = objective(config)
 
         # Check if failure occurred during objective func evaluation
         if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
@@ -155,6 +155,7 @@ class RSOptimizer(BaseOptimizer):
         Returns
         -------
         """
+        if not self.dynamic_update: return
         # Sort by best metrics
         df = pd.DataFrame(self.history[-1])\
                .sort_values(by='metric', ascending=self.lower_is_better)[:hof]

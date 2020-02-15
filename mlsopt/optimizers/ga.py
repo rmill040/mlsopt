@@ -237,7 +237,7 @@ class GAOptimizer(BaseOptimizer):
 
         while len(parents) < self.n_population:
             # Randomly select k chromosomes
-            idx = self.rg.choice(**kwargs)
+            idx = self.rng.choice(**kwargs)
 
             # Run tournament selection and keep parent
             winner_idx = selector(metrics[idx])
@@ -268,7 +268,7 @@ class GAOptimizer(BaseOptimizer):
 
         while len(population) < self.n_population:
             # Randomly sample two parents
-            p1, p2  = self.rg.choice(**kwargs)
+            p1, p2  = self.rng.choice(**kwargs)
             parent1 = parents[p1]
             parent2 = parents[p2]
 
@@ -278,7 +278,7 @@ class GAOptimizer(BaseOptimizer):
             child2 = deepcopy(parent2)
 
             # Update children if crossover selected
-            if self.rg.uniform() < self.crossover_proba:
+            if self.rng.uniform() < self.crossover_proba:
                 # sname := sampler name
                 for sname in parent1.keys():
                     
@@ -289,9 +289,9 @@ class GAOptimizer(BaseOptimizer):
                             pv1   = parent1[sname][pname] 
                             pv2   = parent2[sname][pname]
                             dtype = type(pv1)
-                            if self.rg.uniform() < self.crossover_independent_proba:
+                            if self.rng.uniform() < self.crossover_independent_proba:
                                 # Calculate new child values
-                                b   = self.rg.uniform()
+                                b   = self.rng.uniform()
                                 cv1 = b * pv1 + (1 - b) * pv2
                                 cv2 = (1 - b) * pv1 + b * pv2
 
@@ -312,7 +312,7 @@ class GAOptimizer(BaseOptimizer):
                                                parent1[sname],
                                                parent2[sname]):
                             # Update child values by swapping parent values
-                            if self.rg.uniform() < self.crossover_independent_proba:
+                            if self.rng.uniform() < self.crossover_independent_proba:
                                 child1[sname][i] = pv2
                                 child2[sname][i] = pv1
 
@@ -337,7 +337,7 @@ class GAOptimizer(BaseOptimizer):
         
         # Loop over each chromosome and mutate based on probabilities
         for idx in range(self.n_population):
-            if self.rg.uniform() < self.mutation_proba:
+            if self.rng.uniform() < self.mutation_proba:
                 # sname := sampler name
                 for sname in population[idx].keys():
                     
@@ -345,7 +345,7 @@ class GAOptimizer(BaseOptimizer):
                     if isinstance(population[idx][sname], dict):
                         # pname := parameter name
                         for pname in population[idx][sname].keys():
-                            if self.rg.uniform() < self.mutation_independent_proba:
+                            if self.rng.uniform() < self.mutation_independent_proba:
                                 population[idx][sname][pname] = \
                                     sample(sampler.samplers[sname].space[pname])
                     
@@ -353,7 +353,7 @@ class GAOptimizer(BaseOptimizer):
                     elif isinstance(population[idx][sname], np.ndarray):
                         n_attr = len(population[idx][sname])
                         change = np.where(
-                            self.rg.uniform(size=n_attr) < self.mutation_independent_proba
+                            self.rng.uniform(size=n_attr) < self.mutation_independent_proba
                             )[0]
                         if len(change):
                             population[idx][sname][change] = ~population[idx][sname][change]
