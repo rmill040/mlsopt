@@ -55,7 +55,7 @@ def main():
             
             # Define model
             hp  = chromosome['hp']       # Matches name of hp_sampler
-            clf = XGBClassifier(**hp, seed=SEED)
+            clf = XGBClassifier(**hp, random_state=SEED)
             
             # Run 5-fold stratified cross-validation using AUC as metric
             metric = cross_val_score(clf, X_, y, cv=5, n_jobs=1, scoring='roc_auc')

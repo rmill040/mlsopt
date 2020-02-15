@@ -47,7 +47,8 @@ class XGBClassifierSampler(BaseSampler):
         -------
         """
         return f"XGBClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
-               f"{self.dynamic_update}, early_stopping={self.early_stopping})"
+               f"{self.dynamic_update}, early_stopping={self.early_stopping}, " + \
+               f"seed={seed})"
 
     def __repr__(self):
         """ADD
@@ -211,7 +212,8 @@ class LGBMClassifierSampler:
     def update_space(self):
         pass
 
-class SGBMClassifierSampler:
+
+class SGBMClassifierSampler(BaseSampler):
     """ADD HERE.
 
     Parameters
@@ -221,8 +223,7 @@ class SGBMClassifierSampler:
                  space=None,
                  dynamic_update=False, 
                  early_stopping=False,
-                 seed=None):
-        self.dynamic_update = dynamic_update
+                 seed=None):        
         self.early_stopping = early_stopping
         
         if space is None:
@@ -240,7 +241,8 @@ class SGBMClassifierSampler:
         -------
         """
         return f"SGBMClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
-               f"{self.dynamic_update}, early_stopping={self.early_stopping})"
+               f"{self.dynamic_update}, early_stopping={self.early_stopping}, " + \
+               f"seed={seed})"
 
     def __repr__(self):
         """ADD
@@ -265,8 +267,73 @@ class SGBMClassifierSampler:
         """
         return "hyperparameter"
 
-    def sample_space(self):
-        pass
+    def _init_space(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        subsampling = (log(0.50), log(1.0))
 
-    def update_space(self):
-        pass
+        return {
+            'n_estimators'          : scope.int(hp.quniform('n_estimators', 50, 2000, 50)),
+            'max_depth'             : scope.int(hp.quniform('max_depth', 1, 11, 1)),
+            'min_impurity_decrease' : hp.loguniform('min_impurity_decrease', log(1e-4), log(0.20)),
+            'learning_rate'         : hp.loguniform('learning_rate', log(1e-3), log(0.5)),
+            'subsample'             : hp.loguniform('subsample', *subsampling),
+            'max_features'          : hp.loguniform('max_features', *subsampling),
+            'ccp_alpha'             : hp.loguniform('ccp_alpha', log(1e-4), log(0.50))
+        }
+
+    def sample_space(self):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        return sample(self.space, rng=self.rng)
+
+    def update_space(self, data=None):
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        if not self.dynamic_update: return
+
+        # Update search distributions of hyperparameters
+        for param in self.space.keys():
+            
+            # Do not update n_estimators distribution if early stopping enabled
+            if param == 'n_estimators' and self.early_stopping: continue
+
+            # Parse hyperopt distribution and calculate bounds of distribution
+            dist_type, bounds = parse_hyperopt_param(str(self.space[param]))
+            if dist_type in ['choice', 'pchoice']: continue
+            min_value, max_value = data[param].min(), data[param].max()
+
+            # Log transform bounds if log-based distributions
+            if "log" in dist_type:
+                min_value = log(min_value)
+                max_value = log(max_value)
+
+            # Update new distribution
+            hp_dist = HP_DISTS[dist_type]
+
+            # For quantile-based distributions, cast sampled value to integer 
+            # and add in quantile value for updated distribution
+            if dist_type.startswith("q"):
+                self.space[param] = scope.int(
+                    hp_dist(param, min_value, max_value, bounds[-1])
+                )
+            else:
+                self.space[param] = hp_dist(param, min_value, max_value)

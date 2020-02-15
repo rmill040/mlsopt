@@ -44,7 +44,7 @@ CV          = partial(cross_val_score, cv=_SKF)
 _LOGGER = logging.getLogger(__name__)
 
 
-def tpe_optimizer(X, y, name, model, scoring, add_noise, rng):
+def tpe_optimizer(X, y, name, model, scoring, add_noise, max_iterations, rng):
     """ADD
     
     Parameters
@@ -94,7 +94,6 @@ def tpe_optimizer(X, y, name, model, scoring, add_noise, rng):
             'loss'  : 1 - metrics.mean(),
             'status'  : hyperopt.STATUS_OK,
         }
-        
     
     # Define optimizer and start timer
     trials = hyperopt.Trials()
@@ -105,12 +104,11 @@ def tpe_optimizer(X, y, name, model, scoring, add_noise, rng):
                   space=space,
                   algo=hyperopt.tpe.suggest,
                   trials=trials,
-                  max_evals=200,
+                  max_evals=max_iterations,
                   rstate=rng)
     
     # Total time
     minutes = (time.time() - start) / 60
-    
     return {
         'method' : 'tpe',
         'metric' : 1 - trials.best_trial['result']['loss'],
@@ -118,7 +116,7 @@ def tpe_optimizer(X, y, name, model, scoring, add_noise, rng):
     }
 
 
-def fs_with_grid_search(X, y, name, model, scoring, add_noise):
+def fs_with_grid_search(X, y, name, model, scoring, max_iterations, add_noise):
     """ADD
     
     Parameters
@@ -179,7 +177,7 @@ def fs_with_grid_search(X, y, name, model, scoring, add_noise):
     }
 
 
-def rs_optimizer(X, y, name, model, scoring, add_noise):
+def rs_optimizer(X, y, name, model, scoring, max_iterations, add_noise):
     """ADD
     
     Parameters
@@ -198,7 +196,7 @@ def rs_optimizer(X, y, name, model, scoring, add_noise):
         pass
 
 
-def rsdu_optimizer(X, y, name, model, scoring, add_noise):
+def rsdu_optimizer(X, y, name, model, scoring, max_iterations, add_noise):
     """ADD
     
     Parameters
@@ -217,7 +215,7 @@ def rsdu_optimizer(X, y, name, model, scoring, add_noise):
         pass
 
 
-def ga_optimizer(X, y, name, model, scoring, add_noise):
+def ga_optimizer(X, y, name, model, scoring, max_iterations, add_noise):
     """ADD
     
     Parameters
@@ -235,7 +233,7 @@ def ga_optimizer(X, y, name, model, scoring, add_noise):
         """
         pass
 
-def ps_optimizer(X, y, name, model, scoring, add_noise):
+def ps_optimizer(X, y, name, model, scoring, max_iterations, add_noise):
     """ADD
     
     Parameters

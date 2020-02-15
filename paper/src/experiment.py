@@ -11,12 +11,13 @@ import time
 import methods
 
 # Constants
-MAIN_DIR  = Path(__file__).resolve().parents[1]
-DATA_DIR  = join(MAIN_DIR, 'data')
-SAVE_NAME = join(DATA_DIR, 'experiment1.csv')
-DATA_SETS = [f for f in os.listdir(DATA_DIR) if f.endswith(".csv")]
-SEED      = 1718
-RNG       = np.random.RandomState(seed=SEED)
+MAIN_DIR       = Path(__file__).resolve().parents[1]
+DATA_DIR       = join(MAIN_DIR, 'data')
+SAVE_NAME      = join(DATA_DIR, 'experiment1.csv')
+DATA_SETS      = [f for f in os.listdir(DATA_DIR) if f.endswith(".csv")]
+SEED           = 1718
+RNG            = np.random.RandomState(seed=SEED)
+MAX_ITERATIONS = 200
 
 # Define logger
 logging.basicConfig(
@@ -59,22 +60,18 @@ def load_data(name, labels='original', add_noise=False):
 
     # Double feature space by shuffling features
     if add_noise:
-        X_s = X.apply(RNG.permutation(), axis=0)\
+        X_s = X.apply(RNG.permutation, axis=0)\
                .add_suffix("_s")
         X   = pd.concat([X, X_s], axis=1)
     
-    # Keep raw labels
-    if labels == 'original':
-        return X, y
-
     # Keep ova labels
-    elif labels == 'ova':
+    if labels == 'ova':
         y_u = np.unique(y)
         if len(y_u) > 2:
             y_max = y.value_counts().idxmax()
             y     = np.where(y == y_max, 1, 0)
     
-        return X, y
+    return X, y
     
 
 def update_results(*,
@@ -84,6 +81,7 @@ def update_results(*,
                    add_noise,
                    labels,
                    scoring,
+                   max_iterations,
                    n_samples,
                    n_features,
                    n_classes,
@@ -93,17 +91,18 @@ def update_results(*,
     """ADD HERE.
     """
     summary.append({
-        'model'      : model,
-        'name'       : name,
-        'add_noise'  : add_noise,
-        'labels'     : labels,
-        'scoring'    : scoring,
-        'n_samples'  : n_samples,
-        'n_features' : n_features,
-        'n_classes'  : n_classes,
-        'method'     : method,
-        'metric'     : metric,
-        'time'       : time
+        'model'          : model,
+        'name'           : name,
+        'add_noise'      : add_noise,
+        'labels'         : labels,
+        'scoring'        : scoring,
+        'max_iterations' : max_iterations,
+        'n_samples'      : n_samples,
+        'n_features'     : n_features,
+        'n_classes'      : n_classes,
+        'method'         : method,
+        'metric'         : metric,
+        'time'           : time
     })
     
 
@@ -112,12 +111,6 @@ def main():
 
     start = time.time()
 
-    for name in DATA_SETS:
-        X, y = load_data(name)
-        print(name)
-        print(y.value_counts())
-    quit()
-    
     # Begin experiments
     summary = []
     for labels in ['original', 'ova']:
@@ -127,43 +120,45 @@ def main():
                 for add_noise in [False, True]: 
 
                     # Load data
-                    X, y = load_data(name, add_noise=True)
-                    
+                    X, y = load_data(name, labels=labels, add_noise=add_noise)
+                
                     msg  = "\n" + "*"*40 + \
-                            f"\ndata: {name}, model: {model}, " + \
-                            f"labels: {labels}, add noise: {add_noise}" + \
-                            "\n" + "*"*40
+                        f"\ndata: {name}, model: {model}, " + \
+                        f"labels: {labels}, add noise: {add_noise}" + \
+                        "\n" + "*"*40
                     _LOGGER.info(msg)
 
                     _LOGGER.info(f"samples = {X.shape[0]}, features = {X.shape[1]}")
 
                     # Data structure to hold current experimental results
                     current = {
-                                'summary'    : summary,
-                                'model'      : model,
-                                'name'       : name,
-                                'labels'     : labels,
-                                'scoring'    : scoring,
-                                'add_noise'  : add_noise,
-                                'n_samples'  : X.shape[0],
-                                'n_features' : X.shape[1],
-                                'n_classes'  : len(np.unique(y)),
+                                'summary'        : summary,
+                                'model'          : model,
+                                'name'           : name,
+                                'labels'         : labels,
+                                'scoring'        : scoring,
+                                'max_iterations' : MAX_ITERATIONS,
+                                'add_noise'      : add_noise,
+                                'n_samples'      : X.shape[0],
+                                'n_features'     : X.shape[1],
+                                'n_classes'      : len(np.unique(y)),
                             }
 
                     # Keyword args for methods
                     kwargs = {
-                        'X'         : X,
-                        'y'         : y,
-                        'name'      : name,
-                        'model'     : model,
-                        'add_noise' : add_noise,
-                        'scoring'   : scoring
+                        'X'              : X,
+                        'y'              : y,
+                        'name'           : name,
+                        'model'          : model,
+                        'add_noise'      : add_noise,
+                        'max_iterations' : MAX_ITERATIONS,
+                        'scoring'        : scoring
                     }
 
                     # 1. Tree of parzen estimators
-                    # results = methods.tpe_optimizer(**kwargs, rng=RNG)
-                    # update_results(**current, **results)
-                    # del results
+                    results = methods.tpe_optimizer(**kwargs, rng=RNG)
+                    update_results(**current, **results)
+                    del results
 
                     # 2. Feature selection and grid search
                     results = methods.fs_with_grid_search(**kwargs, rng=RNG)

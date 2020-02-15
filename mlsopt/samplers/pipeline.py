@@ -29,7 +29,7 @@ class PipelineSampler(BaseSampler):
         Returns
         -------
         """
-        return f"PipelineSampler(dynamic_update={self.dynamic_update})"
+        return f"PipelineSampler(dynamic_update={self.dynamic_update}, seed={seed})"
     
     def __repr__(self):
         """ADD

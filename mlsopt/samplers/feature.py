@@ -67,7 +67,7 @@ class BernoulliFeatureSampler(BaseSampler):
         return f"FeatureSampler(n_features={self.n_features}, " + \
                f"selection_probs={str_sp}, feature_names={str_fn}, " + \
                f"muting_threshold={self.muting_threshold}, " + \
-               f"dynamic_update={self.dynamic_update})"
+               f"dynamic_update={self.dynamic_update}, seed={seed})"
 
     def __repr__(self):
         """ADD
