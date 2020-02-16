@@ -4,7 +4,6 @@ import os
 from os.path import join
 import pandas as pd
 from pathlib import Path
-from scipy.io import loadmat
 import time
 
 # Directory imports
@@ -115,12 +114,12 @@ def main():
 
     # Begin experiments
     summary = []
-    for labels in ['original', 'ova']:
+    for labels in ['original']:
         scoring = 'accuracy' if labels == 'original' else 'roc_auc'
-        for model in ['xgb', 'sgbm']:
-            for name in ['cancer.csv']:   
-                for add_noise in [False, True]: 
-
+        for model in ['xgb']:
+            for name in DATA_SETS:
+                for add_noise in [False]: 
+                    
                     # Load data
                     X, y = load_data(name, labels=labels, add_noise=add_noise)
                 
@@ -157,7 +156,7 @@ def main():
                     }
 
                     # 1. Tree of parzen estimators
-                    results = methods.tpe_optimizer(**kwargs, add_noise=add_noise, rng=RNG)
+                    results = methods.tpe_optimizer(**kwargs, rng=RNG)
                     update_results(**current, **results)
                     del results
 

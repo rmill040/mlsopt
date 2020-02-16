@@ -53,7 +53,7 @@ CV          = partial(cross_val_score, cv=_SKF)
 _LOGGER = logging.getLogger(__name__)
 
 
-def tpe_optimizer(X, y, name, model, scoring, max_configs, add_noise, rng):
+def tpe_optimizer(X, y, name, model, scoring, max_configs, rng):
     """ADD
     
     Parameters
