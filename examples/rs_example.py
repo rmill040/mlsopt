@@ -86,14 +86,13 @@ def main():
                       max_iterations=5,
                       subsample_factor=2,
                       verbose=1, 
-                      n_jobs=1,
+                      n_jobs=-1,
                       backend='loky',
                       seed=1718)
 
     opt.search(objective=objective, 
                sampler=sampler, 
                lower_is_better=False)
-
     opt.serialize('rsoptimizer_results.csv')
     opt.plot_history()
 

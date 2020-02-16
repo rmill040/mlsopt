@@ -1,7 +1,13 @@
 from abc import ABC, abstractmethod
 import logging
+import matplotlib
+import matplotlib.pyplot as plt
 from multiprocessing import cpu_count, Manager
 from numpy.random import RandomState
+import pandas as pd
+import seaborn as sns
+
+matplotlib.style.use("ggplot")
 
 __all__ = ["BaseOptimizer"]
 _LOGGER = logging.getLogger(__name__)
@@ -55,10 +61,77 @@ class BaseOptimizer(ABC):
     def search(self):
         pass
 
-    @abstractmethod
-    def serialize(self):
-        pass
+    def get_df(self):
+        """ADD HERE.
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        
+        """
+        # Concatenate history together
+        df = pd.concat([pd.DataFrame(h) for h in self.history], axis=0)\
+               .reset_index(drop=True)
 
-    @abstractmethod
+        # Unroll parameters
+        df_params = df.pop('params')
+        for sname in df_params.iloc[0].keys():
+            columns = self._colmapper.get(sname, None)
+            records = df_params.apply(lambda x: x[sname]).values.tolist()
+            df      = pd.concat([df, 
+                                 pd.DataFrame.from_records(records, columns=columns)
+                                 ], axis=1)
+        
+        # Sort by metric
+        df = df.sort_values(by='metric', ascending=self.lower_is_better)\
+               .reset_index(drop=True)
+
+        return df
+
+    def serialize(self, save_name):
+        """ADD
+
+        TODO: What happens in the case with different sampler names and the 
+              same parameter names (e.g., 2 xgboost samplers with same parameters 
+              being sampled) --> handle this.
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        if not save_name.endswith(".csv"): save_name += ".csv"
+        
+        df = self.get_df()
+
+        # Write data to disk
+        df.to_csv(save_name, index=False)
+        if self.verbose:
+            _LOGGER.info(f"saved results to disk at {save_name}")
+
     def plot_history(self):
-        pass
+        """ADD
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        df = self.get_df()
+        
+        # Boxplot and swarmplot
+        sns.boxplot(x='iteration', y='metric', data=df)
+        sns.swarmplot(x='iteration', y='metric', data=df, color=".25")
+
+        # Decorate plots
+        best   = df.iloc[df['metric'].idxmin()] if self.lower_is_better \
+                    else df.iloc[df['metric'].idxmax()]
+        title  = f"Best metric = {round(best['metric'], 4)} found in " + \
+                 f"iteration {best['iteration']}"
+        plt.title(title)
+        plt.tight_layout()
+        plt.show()

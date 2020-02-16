@@ -2,14 +2,9 @@ from copy import deepcopy
 from hyperopt.pyll.stochastic import sample
 from joblib import delayed, Parallel
 import logging
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import time
-
-matplotlib.style.use("ggplot")
 
 # Package imports
 from ..base.optimizers import BaseOptimizer
@@ -120,11 +115,11 @@ class GAOptimizer(BaseOptimizer):
                 if results['message']: msg += f" because {results['message']}"
             _LOGGER.warn(msg)
             return {
-                'status'     : results['status'],
-                'metric'     : np.inf if self.lower_is_better else -np.inf,
-                'params'     : chromosome,
-                'generation' : generation,
-                'id'         : i
+                'status'    : results['status'],
+                'metric'    : np.inf if self.lower_is_better else -np.inf,
+                'params'    : chromosome,
+                'iteration' : generation,
+                'id'        : i
             }
         
         # Find best metric so far and compare results to see if current result is better
@@ -142,11 +137,11 @@ class GAOptimizer(BaseOptimizer):
                 self.best_results['params'] = chromosome        
  
         return {
-            'status'     : results['status'],
-            'metric'     : results['metric'],
-            'params'     : chromosome,
-            'generation' : generation,
-            'id'         : i
+            'status'    : results['status'],
+            'metric'    : results['metric'],
+            'params'    : chromosome,
+            'iteration' : generation,
+            'id'        : i
             }
         
     def _fitness(self, population, objective, generation):
@@ -418,59 +413,3 @@ class GAOptimizer(BaseOptimizer):
             _LOGGER.info(f"finished searching in {minutes} minutes")
 
         return self
-
-    def serialize(self, save_name):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        if not save_name.endswith(".csv"): save_name += ".csv"
-        
-        # Concatenate history together
-        df = pd.concat([pd.DataFrame(h) for h in self.history], axis=0)\
-               .reset_index(drop=True)
-
-        # Unroll parameters
-        df_params = df.pop('params')
-        for sname in df_params.iloc[0].keys(): 
-            columns = self._colmapper.get(sname, None)
-            records = df_params.apply(lambda x: x[sname]).values.tolist()
-            df      = pd.concat([df, 
-                                 pd.DataFrame.from_records(records, columns=columns)
-                                 ], axis=1)
-
-        # Write data to disk
-        df.sort_values(by='metric', ascending=self.lower_is_better)\
-          .to_csv(save_name, index=False)
-        if self.verbose:
-            _LOGGER.info(f"saved results to disk at {save_name}")
-
-    def plot_history(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        # Concatenate history together
-        df = pd.concat([pd.DataFrame(h) for h in self.history], axis=0)\
-               .reset_index(drop=True)
-        
-        # Boxplot and swarmplot
-        sns.boxplot(x='generation', y='metric', data=df)
-        sns.swarmplot(x='generation', y='metric', data=df, color=".25")
-
-        # Decorate plots
-        best   = df.iloc[df['metric'].idxmin()] if self.lower_is_better \
-                    else df.iloc[df['metric'].idxmax()]
-        title  = f"Best metric = {round(best['metric'], 4)} found in " + \
-                 f"generation {best['generation']}"
-        plt.title(title)
-        plt.tight_layout()
-        plt.show()
