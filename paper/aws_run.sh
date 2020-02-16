@@ -23,7 +23,7 @@ echo "upgrade core packages"
 ~/anaconda3/bin/pip install scikit-learn numpy pandas hyperopt --upgrade
 
 echo "running experiments"
-~/anaconda3/bin/python paper/src/experiment_no_tpe.py
+~/anaconda3/bin/python paper/src/experiment.py
 
 echo "stoping this EC2 instance"
 shutdown -h now
