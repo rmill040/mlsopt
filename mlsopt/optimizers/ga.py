@@ -399,7 +399,7 @@ class GAOptimizer(BaseOptimizer):
         
             # Step 2. Selection
             parents = self._selection(population, generation)
-            if not len(parents): return self # Early stopping enabled
+            if not len(parents): return self  # Early stopping enabled
 
             # Step 3. Crossover
             population = self._crossover(parents)
