@@ -1,6 +1,7 @@
 import ConfigSpace.hyperparameters as CSH
 import logging
 from math import log
+import pandas as pd
 
 # Package imports
 from ..base.samplers import BaseSampler
@@ -31,6 +32,9 @@ class XGBClassifierSampler(BaseSampler):
         self.early_stopping = early_stopping
     
         super().__init__(dynamic_update=dynamic_update, seed=seed)
+        
+        # Initialize distributions
+        self._init_distributions()
 
     def __str__(self):
         """ADD
@@ -41,10 +45,10 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        import pdb; pdb.set_trace()
-        return f"XGBClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
-               f"{self.dynamic_update}, early_stopping={self.early_stopping}, " + \
-               f"seed={self.seed})"
+        names = self.space.get_hyperparameter_names()
+        return f"XGBClassifierSampler(space={names}, " + \
+               f"dynamic_update={self.dynamic_update}, " + \
+               f"early_stopping={self.early_stopping}, seed={self.seed})"
 
     def __repr__(self):
         """ADD
@@ -78,6 +82,9 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
+        meta = {"updated": False}
+        
+        # Set default distributions if None provided
         if self.distributions is None:  
             self.distributions = [
                 # Number of estimators
@@ -85,87 +92,101 @@ class XGBClassifierSampler(BaseSampler):
                                                  lower=50, 
                                                  upper=1_000, 
                                                  q=50,
-                                                 default_value=100),
+                                                 default_value=100,
+                                                 meta=meta),
                 # Max depth of trees
                 CSH.UniformIntegerHyperparameter("max_depth",
                                                  lower=1,
                                                  upper=11,
                                                  q=1,
-                                                 default_value=6),
+                                                 default_value=6,
+                                                 meta=meta),
                 # Minimum child weight for split
                 CSH.UniformIntegerHyperparameter("min_child_weight",
                                                  lower=1,
                                                  upper=20,
                                                  q=1,
-                                                 default_value=1),
+                                                 default_value=1,
+                                                 meta=meta),
                 # Maximum delta step
                 CSH.UniformIntegerHyperparameter("max_delta_step",
                                                  lower=0,
                                                  upper=3,
                                                  q=1,
-                                                 default_value=0),
+                                                 default_value=0,
+                                                 meta=meta),
                 # Learning rate
                 CSH.UniformFloatHyperparameter("learning_rate",
                                                lower=1e-3,
                                                upper=0.5,
                                                log=True,
-                                               default_value=0.3),
+                                               default_value=0.1,
+                                               meta=meta),
                 # Row subsampling
                 CSH.UniformFloatHyperparameter("subsample",
                                                lower=0.5,
                                                upper=1.0,
                                                log=True,
-                                               default_value=1.0),
+                                               default_value=1.0,
+                                               meta=meta),
                 # Column subsampling by tree
                 CSH.UniformFloatHyperparameter("colsample_bytree",
                                                lower=0.5,
                                                upper=1.0,
                                                log=True,
-                                               default_value=1.0),
+                                               default_value=1.0,
+                                               meta=meta),
                 # Column subsampling by level
                 CSH.UniformFloatHyperparameter("colsample_bylevel",
                                                lower=0.5,
                                                upper=1.0,
                                                log=True,
-                                               default_value=1.0),
+                                               default_value=1.0,
+                                               meta=meta),
                 # Column subsampling by node
                 CSH.UniformFloatHyperparameter("colsample_bynode",
                                                lower=0.5,
                                                upper=1.0,
                                                log=True,
-                                               default_value=1.0),
+                                               default_value=1.0,
+                                               meta=meta),
                 # Gamma
                 CSH.UniformFloatHyperparameter("gamma",
                                                lower=1e-4,
                                                upper=5.0,
                                                log=True,
-                                               default_value=0),
+                                               default_value=1e-4,
+                                               meta=meta),
                 # Regularization alpha
                 CSH.UniformFloatHyperparameter("reg_alpha",
                                                lower=1e-4,
                                                upper=1.0,
                                                log=True,
-                                               default_value=0),
+                                               default_value=1e-4,
+                                               meta=meta),
                 # Regularization lambda
                 CSH.UniformFloatHyperparameter("reg_lambda",
                                                lower=1.0,
                                                upper=4.0,
                                                log=True,
-                                               default_value=1),
+                                               default_value=1,
+                                               meta=meta),
                 # Base score
                 CSH.UniformFloatHyperparameter("base_score",
                                                lower=0.01,
                                                upper=0.99,
                                                log=True,
-                                               default_value=0.50),
+                                               default_value=0.50,
+                                               meta=meta),
                 # Scale positive weights
                 CSH.UniformFloatHyperparameter("scale_pos_weight",
                                                lower=0.1,
                                                upper=10,
                                                log=True,
-                                               default_value=1),
+                                               default_value=1,
+                                               meta=meta),
                 # Random state
-                CSH.Constant("random_state", self.seed)
+                CSH.Constant("random_state", self.seed, meta=meta)
             ]
         
         # Add hyperparameters now
@@ -192,34 +213,40 @@ class XGBClassifierSampler(BaseSampler):
         -------
         """
         if not self.dynamic_update: return
-
-        # # Update search distributions of hyperparameters
-        # for param in self.space.keys():
+        
+        # Data must be a dataframe
+        if not isinstance(data, pd.DataFrame):
+            _LOGGER.error(f"data of type = {type(data)}, must be pandas DataFrame")
+            raise ValueError
+        
+        # Update search distributions of hyperparameters
+        for name in data.columns:
             
-        #     # Do not update n_estimators distribution if early stopping enabled
-        #     if param == 'n_estimators' and self.early_stopping: continue
-
-        #     # Parse hyperopt distribution and calculate bounds of distribution
-        #     dist_type, bounds = parse_hyperopt_param(str(self.space[param]))
-        #     if dist_type in ['choice', 'pchoice']: continue
-        #     min_value, max_value = data[param].min(), data[param].max()
-
-        #     # Log transform bounds if log-based distributions
-        #     if "log" in dist_type:
-        #         min_value = log(min_value)
-        #         max_value = log(max_value)
-
-        #     # Update new distribution
-        #     hp_dist = HP_DISTS[dist_type]
-
-        #     # For quantile-based distributions, cast sampled value to integer 
-        #     # and add in quantile value for updated distribution
-        #     if dist_type.startswith("q"):
-        #         self.space[param] = scope.int(
-        #             hp_dist(param, min_value, max_value, bounds[-1])
-        #         )
-        #     else:
-        #         self.space[param] = hp_dist(param, min_value, max_value)
+            # Do not update n_estimators distribution if early stopping enabled
+            if name == 'n_estimators' and self.early_stopping: continue
+            
+            # Get information on hyperparameter distribution
+            hp        = self.space.get_hyperparameter(name)
+            dist_type = type(hp).__name__
+            
+            # Numerical distribution
+            if dist_type in ['UniformIntegerHyperparameter',
+                             'NormalIntegerHyperparameter',
+                             'UniformFloatHyperparameter',
+                             'NormalFloatHyperparameter']:
+                min_value, max_value = data[name].min(), data[name].max()
+                hp.lower             = min_value
+                hp.upper             = max_value
+                hp.default_value     = min_value
+                hp.meta              = {"updated": True}
+            
+            # Categorical distribution
+            if dist_type == 'CategoricalHyperparameter':
+                pass
+                
+            # Ordinal distribution
+            if dist_type == 'OrdinalHyperparameter':
+                pass
 
 
 class LGBMClassifierSampler:

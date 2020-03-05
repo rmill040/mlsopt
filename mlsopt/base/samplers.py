@@ -14,7 +14,6 @@ class BaseSampler(ABC):
         self._valid_sampler = True
         self.space          = ConfigurationSpace(name=self.__typename__, 
                                                  seed=self.seed)
-        self._init_distributions()
 
     @abstractmethod
     def __str__(self):
@@ -32,10 +31,6 @@ class BaseSampler(ABC):
     def __typename__(self):
         return type(self).__name__
     
-    @abstractmethod
-    def _init_distributions(self):
-        pass
-
     @abstractmethod
     def sample_space(self):
         pass

@@ -62,6 +62,9 @@ class BernoulliFeatureSampler(BaseSampler):
         
         super().__init__(dynamic_update=dynamic_update, seed=seed)
         
+        # Initialize distributions
+        self._init_distributions()
+        
     def __str__(self):
         """ADD
         
@@ -119,8 +122,8 @@ class BernoulliFeatureSampler(BaseSampler):
         -------
         """
         n_zfill = len(str(self.n_features))
-        self.feature_names = ["f" + f"{i}".zfill(n_zfill)
-                                for i in range(1, self.n_features + 1)]
+        self.feature_names = np.array(["f" + f"{i}".zfill(n_zfill)
+                                        for i in range(1, self.n_features + 1)])
         
     def _init_distributions(self):
         """ADD HERE
@@ -133,6 +136,7 @@ class BernoulliFeatureSampler(BaseSampler):
         """
         kwargs = {'choices': [0, 1], 'default_value': 1, 'meta': {'support': True}}
         for name, proba in zip(self.feature_names, self.selection_proba):
+            name = str(name)
             self.space.add_hyperparameter(
                 CSH.CategoricalHyperparameter(name=name, 
                                               weights=[1 - proba, proba],
@@ -185,7 +189,9 @@ class BernoulliFeatureSampler(BaseSampler):
         # Update space with probabilities and support
         for name, proba, support in zip(self.feature_names, 
                                         self.selection_proba, 
-                                        self.support):
+                                        self.support):    
+            name = str(name)
+                    
             # If support is False, force probabilities to always select 0 and 
             # update meta-data to indicate support is now False
             if not support:
