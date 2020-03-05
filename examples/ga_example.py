@@ -24,9 +24,15 @@ def main():
     ###################
     # Define Samplers #
     ###################
+    import numpy as np
 
-    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1])
+    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1], dynamic_update=True, muting_threshold=0.5)
+    data = np.random.binomial(1, .5, size=(100, X.shape[1]))
+    feature_sampler.update_space(data)
+    
+    
     hp_sampler      = XGBClassifierSampler()
+    import pdb; pdb.set_trace()
     sampler         = PipelineSampler(seed=SEED)\
                         .register_sampler(feature_sampler, name='feature')\
                         .register_sampler(hp_sampler, name='hp')

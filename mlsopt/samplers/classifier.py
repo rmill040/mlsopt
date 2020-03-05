@@ -1,12 +1,9 @@
-from hyperopt import hp
-from hyperopt.pyll import scope
-from hyperopt.pyll.stochastic import sample
+import ConfigSpace.hyperparameters as CSH
 import logging
 from math import log
 
 # Package imports
 from ..base.samplers import BaseSampler
-from ..utils import HP_DISTS, parse_hyperopt_param
 
 __all__ = [
     "LGBMClassifierSampler",
@@ -26,15 +23,13 @@ class XGBClassifierSampler(BaseSampler):
     ----------
     """
     def __init__(self, 
-                 space=None,
+                 distributions=None,
                  dynamic_update=False, 
                  early_stopping=False,
-                 seed=None):        
+                 seed=None):
+        self.distributions  = distributions 
         self.early_stopping = early_stopping
-        
-        if space is None:
-            self.space = self._init_space()
-        
+    
         super().__init__(dynamic_update=dynamic_update, seed=seed)
 
     def __str__(self):
@@ -46,6 +41,7 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
+        import pdb; pdb.set_trace()
         return f"XGBClassifierSampler(space={self.space.keys()}, dynamic_update=" + \
                f"{self.dynamic_update}, early_stopping={self.early_stopping}, " + \
                f"seed={self.seed})"
@@ -73,7 +69,7 @@ class XGBClassifierSampler(BaseSampler):
         """
         return "hyperparameter"
 
-    def _init_space(self):
+    def _init_distributions(self):
         """ADD
         
         Parameters
@@ -82,24 +78,98 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        subsampling = (log(0.50), log(1.0))
-
-        return {
-            'n_estimators'      : scope.int(hp.quniform('n_estimators', 50, 500, 50)),
-            'max_depth'         : scope.int(hp.quniform('max_depth', 1, 11, 1)),
-            'min_child_weight'  : scope.int(hp.quniform('min_child_weight', 1, 20, 1)),
-            'max_delta_step'    : scope.int(hp.quniform('max_delta_step', 0, 3, 1)),
-            'learning_rate'     : hp.loguniform('learning_rate', log(1e-3), log(0.5)),
-            'subsample'         : hp.loguniform('subsample', *subsampling),
-            'colsample_bytree'  : hp.loguniform('colsample_bytree', *subsampling),
-            'colsample_bylevel' : hp.loguniform('colsample_bylevel', *subsampling),
-            'colsample_bynode'  : hp.loguniform('colsample_bynode', *subsampling),
-            'gamma'             : hp.loguniform('gamma', log(1e-4), log(5)),
-            'reg_alpha'         : hp.loguniform('reg_alpha', log(1e-4), log(1)),
-            'reg_lambda'        : hp.loguniform('reg_lambda', log(1), log(4)),
-            'base_score'        : hp.loguniform('base_score', log(0.01), log(0.99)),
-            'scale_pos_weight'  : hp.loguniform('scale_pos_weight', log(0.1), log(10))
-        }
+        if self.distributions is None:  
+            self.distributions = [
+                # Number of estimators
+                CSH.UniformIntegerHyperparameter("n_estimators", 
+                                                 lower=50, 
+                                                 upper=1_000, 
+                                                 q=50,
+                                                 default_value=100),
+                # Max depth of trees
+                CSH.UniformIntegerHyperparameter("max_depth",
+                                                 lower=1,
+                                                 upper=11,
+                                                 q=1,
+                                                 default_value=6),
+                # Minimum child weight for split
+                CSH.UniformIntegerHyperparameter("min_child_weight",
+                                                 lower=1,
+                                                 upper=20,
+                                                 q=1,
+                                                 default_value=1),
+                # Maximum delta step
+                CSH.UniformIntegerHyperparameter("max_delta_step",
+                                                 lower=0,
+                                                 upper=3,
+                                                 q=1,
+                                                 default_value=0),
+                # Learning rate
+                CSH.UniformFloatHyperparameter("learning_rate",
+                                               lower=1e-3,
+                                               upper=0.5,
+                                               log=True,
+                                               default_value=0.3),
+                # Row subsampling
+                CSH.UniformFloatHyperparameter("subsample",
+                                               lower=0.5,
+                                               upper=1.0,
+                                               log=True,
+                                               default_value=1.0),
+                # Column subsampling by tree
+                CSH.UniformFloatHyperparameter("colsample_bytree",
+                                               lower=0.5,
+                                               upper=1.0,
+                                               log=True,
+                                               default_value=1.0),
+                # Column subsampling by level
+                CSH.UniformFloatHyperparameter("colsample_bylevel",
+                                               lower=0.5,
+                                               upper=1.0,
+                                               log=True,
+                                               default_value=1.0),
+                # Column subsampling by node
+                CSH.UniformFloatHyperparameter("colsample_bynode",
+                                               lower=0.5,
+                                               upper=1.0,
+                                               log=True,
+                                               default_value=1.0),
+                # Gamma
+                CSH.UniformFloatHyperparameter("gamma",
+                                               lower=1e-4,
+                                               upper=5.0,
+                                               log=True,
+                                               default_value=0),
+                # Regularization alpha
+                CSH.UniformFloatHyperparameter("reg_alpha",
+                                               lower=1e-4,
+                                               upper=1.0,
+                                               log=True,
+                                               default_value=0),
+                # Regularization lambda
+                CSH.UniformFloatHyperparameter("reg_lambda",
+                                               lower=1.0,
+                                               upper=4.0,
+                                               log=True,
+                                               default_value=1),
+                # Base score
+                CSH.UniformFloatHyperparameter("base_score",
+                                               lower=0.01,
+                                               upper=0.99,
+                                               log=True,
+                                               default_value=0.50),
+                # Scale positive weights
+                CSH.UniformFloatHyperparameter("scale_pos_weight",
+                                               lower=0.1,
+                                               upper=10,
+                                               log=True,
+                                               default_value=1),
+                # Random state
+                CSH.Constant("random_state", self.seed)
+            ]
+        
+        # Add hyperparameters now
+        self.space.add_hyperparameters(self.distributions) 
 
     def sample_space(self):
         """ADD
@@ -110,7 +180,7 @@ class XGBClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        return sample(self.space, rng=self.rng)
+        return self.space.sample_configuration().get_dictionary()
 
     def update_space(self, data=None):
         """ADD
@@ -123,33 +193,33 @@ class XGBClassifierSampler(BaseSampler):
         """
         if not self.dynamic_update: return
 
-        # Update search distributions of hyperparameters
-        for param in self.space.keys():
+        # # Update search distributions of hyperparameters
+        # for param in self.space.keys():
             
-            # Do not update n_estimators distribution if early stopping enabled
-            if param == 'n_estimators' and self.early_stopping: continue
+        #     # Do not update n_estimators distribution if early stopping enabled
+        #     if param == 'n_estimators' and self.early_stopping: continue
 
-            # Parse hyperopt distribution and calculate bounds of distribution
-            dist_type, bounds = parse_hyperopt_param(str(self.space[param]))
-            if dist_type in ['choice', 'pchoice']: continue
-            min_value, max_value = data[param].min(), data[param].max()
+        #     # Parse hyperopt distribution and calculate bounds of distribution
+        #     dist_type, bounds = parse_hyperopt_param(str(self.space[param]))
+        #     if dist_type in ['choice', 'pchoice']: continue
+        #     min_value, max_value = data[param].min(), data[param].max()
 
-            # Log transform bounds if log-based distributions
-            if "log" in dist_type:
-                min_value = log(min_value)
-                max_value = log(max_value)
+        #     # Log transform bounds if log-based distributions
+        #     if "log" in dist_type:
+        #         min_value = log(min_value)
+        #         max_value = log(max_value)
 
-            # Update new distribution
-            hp_dist = HP_DISTS[dist_type]
+        #     # Update new distribution
+        #     hp_dist = HP_DISTS[dist_type]
 
-            # For quantile-based distributions, cast sampled value to integer 
-            # and add in quantile value for updated distribution
-            if dist_type.startswith("q"):
-                self.space[param] = scope.int(
-                    hp_dist(param, min_value, max_value, bounds[-1])
-                )
-            else:
-                self.space[param] = hp_dist(param, min_value, max_value)
+        #     # For quantile-based distributions, cast sampled value to integer 
+        #     # and add in quantile value for updated distribution
+        #     if dist_type.startswith("q"):
+        #         self.space[param] = scope.int(
+        #             hp_dist(param, min_value, max_value, bounds[-1])
+        #         )
+        #     else:
+        #         self.space[param] = hp_dist(param, min_value, max_value)
 
 
 class LGBMClassifierSampler:
@@ -297,7 +367,7 @@ class SGBMClassifierSampler(BaseSampler):
         Returns
         -------
         """
-        return sample(self.space, rng=self.rng)
+        return sample(self.space)
 
     def update_space(self, data=None):
         """ADD

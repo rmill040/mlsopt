@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from numpy.random import RandomState
+from ConfigSpace import ConfigurationSpace
 
 __all__ = ["BaseSampler"]
 
@@ -10,9 +10,11 @@ class BaseSampler(ABC):
     @abstractmethod
     def __init__(self, dynamic_update, seed=None):
         self.dynamic_update = dynamic_update
+        self.seed           = 0 if seed is None else seed
         self._valid_sampler = True
-        self.seed           = seed
-        self.rng            = RandomState(2)
+        self.space          = ConfigurationSpace(name=self.__typename__, 
+                                                 seed=self.seed)
+        self._init_distributions()
 
     @abstractmethod
     def __str__(self):
@@ -29,6 +31,10 @@ class BaseSampler(ABC):
     @property
     def __typename__(self):
         return type(self).__name__
+    
+    @abstractmethod
+    def _init_distributions(self):
+        pass
 
     @abstractmethod
     def sample_space(self):

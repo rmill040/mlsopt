@@ -7,7 +7,7 @@ import time
 
 # Package imports
 from ..base.optimizers import BaseOptimizer
-from ..utils import parse_hyperopt_param, STATUS_FAIL, STATUS_OK
+from ..utils import STATUS_FAIL, STATUS_OK
 
 __all__ = ["RSOptimizer"]
 _LOGGER = logging.getLogger(__name__)
