@@ -17,41 +17,50 @@ class PipelineSampler(BaseSampler):
     def __init__(self, seed=None):
         self.samplers     = {}
         self._initialized = False
-
+        
         super().__init__(dynamic_update=True, seed=seed)
-
+        
     def __str__(self):
-        """ADD
+        """String representation of class.
         
         Parameters
         ----------
+        None
         
         Returns
         -------
+        str
+            Class string.
         """
-        return f"PipelineSampler(dynamic_update={self.dynamic_update}, " + \
+        return f"{self.__typename__}(dynamic_update={self.dynamic_update}, " + \
                f"seed={self.seed})"
     
     def __repr__(self):
-        """ADD
+        """String representation of class.
         
         Parameters
         ----------
+        None
         
         Returns
         -------
+        str
+            Class string.
         """
         return self.__str__()
 
     @property
     def __type__(self):
-        """ADD
+        """Type of sampler.
         
         Parameters
         ----------
+        None
         
         Returns
         -------
+        str
+            Sampler type.
         """
         return "pipeline"
 
@@ -65,46 +74,27 @@ class PipelineSampler(BaseSampler):
         -------
         """
         if not hasattr(sampler, "_valid_sampler"):
-            _LOGGER.exception(f"sampler <{name}> not recognized as a valid " + \
-                              "sampler")
+            _LOGGER.error(f"sampler <{name}> not recognized as a valid " + 
+                          "sampler")
             raise ValueError
 
-        if name is None:
-            _LOGGER.warn("sampler name not defined, registering sampler with " + \
-                        f"name <{sampler.__typename__}>")
+        if name is None:    
+            _LOGGER.warn("sampler name not defined, registering sampler with " + 
+                         f"name <{sampler.__typename__}>")
             name = sampler.__typename__
 
         # Check if name already exists in registered samplers
-        if name in self.samplers.keys():
-            _LOGGER.warn(f"sampler <{name}> already registered as a " + \
-                         f"<{self.samplers[name].__type__}> sampler, " + \
-                         f"replacing sampler with new <{sampler.__type__}> " + \
+        if name in self.samplers:
+            _LOGGER.warn(f"sampler <{name}> already registered as a " + 
+                         f"<{self.samplers[name].__type__}> sampler, " + 
+                         f"replacing sampler with new <{sampler.__type__}> " + 
                          "sampler")
         
-        # Add sampler with updated seed
+        # Add sampler and update seed to match seed defined in constructor
         sampler.seed        = self.seed
         self.samplers[name] = sampler
         self._initialized   = True
         return self
-
-    @property
-    def space(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        if not self._initialized:
-            _LOGGER.exception("sampler not initialized, space undefined")
-            raise ValueError
-        
-        space = {}
-        for sampler in self.samplers.values():
-            space.update(sampler.space)
-        return space
 
     def sample_space(self, n_samples=1, return_combined=True):
         """ADD
@@ -153,6 +143,6 @@ class PipelineSampler(BaseSampler):
         try:
             self.samplers[name].update_space(data)
         except Exception as e:
-            _LOGGER.exception("error trying to update space for sampler " + \
-                             f"<{name}> because {e}")
+            _LOGGER.exception("error trying to update space for sampler " + 
+                              f"<{name}> because {e}")
             raise e

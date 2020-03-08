@@ -1,14 +1,11 @@
 from copy import deepcopy
-from hyperopt.pyll.stochastic import sample
 from joblib import delayed, Parallel
 import logging
 import numpy as np
-import pandas as pd
 import time
 
 # Package imports
 from ..base.optimizers import BaseOptimizer
-from ..utils import STATUS_FAIL, STATUS_OK
 
 __all__ = ["GAOptimizer"]
 _LOGGER = logging.getLogger(__name__)
@@ -40,6 +37,7 @@ class GAOptimizer(BaseOptimizer):
         #       or early stopping
         # Define attributes
         self.n_population                = n_population
+        self.n_configurations            = n_population  # Used in base class
         self.n_generations               = n_generations
         self.crossover_proba             = crossover_proba
         self.mutation_proba              = mutation_proba
@@ -87,62 +85,6 @@ class GAOptimizer(BaseOptimizer):
         -------
         """
         return self.__str__()
-
-    def _calculate_single_fitness(self, 
-                                  objective, 
-                                  chromosome, 
-                                  i, 
-                                  generation):
-        """Calculate fitness value for chromosome.
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        if self.verbose and i % self.n_jobs == 0:
-            _LOGGER.info(f"evaluating chromosomes, {self.n_population - i} " + 
-                         "remaining")
-    
-        # Evaluate chromosome
-        results = objective(chromosome)
-
-        # Check if failure occurred during objective func evaluation
-        if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
-            msg = "running chromosome failed"
-            if 'message' in results.keys():
-                if results['message']: msg += f" because {results['message']}"
-            _LOGGER.warn(msg)
-            return {
-                'status'    : results['status'],
-                'metric'    : np.inf if self.lower_is_better else -np.inf,
-                'params'    : chromosome,
-                'iteration' : generation,
-                'id'        : i
-            }
-        
-        # Find best metric so far and compare results to see if current result is better
-        if self.lower_is_better:
-            if results['metric'] < self.best_results['metric']:
-                if self.verbose:
-                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                self.best_results['metric'] = results['metric']
-                self.best_results['params'] = chromosome        
-        else:
-            if results['metric'] > self.best_results['metric']:
-                if self.verbose:
-                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                self.best_results['metric'] = results['metric']
-                self.best_results['params'] = chromosome        
- 
-        return {
-            'status'    : results['status'],
-            'metric'    : results['metric'],
-            'params'    : chromosome,
-            'iteration' : generation,
-            'id'        : i
-            }
         
     def _fitness(self, population, objective, generation):
         """ADD
@@ -155,7 +97,7 @@ class GAOptimizer(BaseOptimizer):
         """
         # Calculate fitness for population
         population = Parallel(n_jobs=self.n_jobs, verbose=False, backend=self.backend)\
-                        (delayed(self._calculate_single_fitness)
+                        (delayed(self._evaluate_single_config)
                             (objective, chromosome, i, generation)
                                 for i, chromosome in enumerate(population))
         
@@ -317,7 +259,6 @@ class GAOptimizer(BaseOptimizer):
         
         return population
 
-
     def _mutation(self, population, sampler):
         """ADD
         
@@ -336,14 +277,16 @@ class GAOptimizer(BaseOptimizer):
                 # sname := sampler name
                 for sname in population[idx].keys():
                     
+                    space = sampler.samplers[sname].space
+                    
                     # Mutate hyperparameter space
                     if isinstance(population[idx][sname], dict):
                         # pname := parameter name
                         for pname in population[idx][sname].keys():
                             if self.rng.uniform() < self.mutation_independent_proba:
                                 population[idx][sname][pname] = \
-                                    sample(sampler.samplers[sname].space[pname])
-                    
+                                    space.get_hyperparameter(pname).sample(space.random)
+                        
                     # Mutate feature space
                     elif isinstance(population[idx][sname], np.ndarray):
                         n_attr = len(population[idx][sname])
@@ -362,17 +305,10 @@ class GAOptimizer(BaseOptimizer):
         ----------
         
         Returns
-        -------p
-        
+        -------
         """
-        start = time.time()
+        start = time.time()  
         
-        # Get feature names if specified in sampler
-        self._colmapper = {}
-        for sname, sdist in sampler.samplers.items():
-            if sdist.__type__ == 'feature':
-                self._colmapper[sname] = sdist.feature_names
-  
         # Set this as an attribute
         self.lower_is_better = lower_is_better
         

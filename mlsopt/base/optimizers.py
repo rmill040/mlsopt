@@ -3,9 +3,13 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 from multiprocessing import cpu_count, Manager
+import numpy as np
 from numpy.random import RandomState
 import pandas as pd
 import seaborn as sns
+
+# Package imports
+from ..utils import STATUS_FAIL, STATUS_OK
 
 matplotlib.style.use("ggplot")
 
@@ -56,6 +60,62 @@ class BaseOptimizer(ABC):
     @property
     def __typename__(self):
         return type(self).__name__
+    
+    def _evaluate_single_config(self, 
+                                 objective, 
+                                 configuration, 
+                                 i, 
+                                 iteration):
+        """Calculate objective function for a single configuration.
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        if self.verbose and i % self.n_jobs == 0:
+            _LOGGER.info(f"evaluating configurations, {self.n_configurations - i} " + 
+                         "remaining")
+    
+        # Evaluate configuration
+        results = objective(configuration)
+
+        # Check if failure occurred during objective func evaluation
+        if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
+            msg = "running configuration failed"
+            if 'message' in results.keys():
+                if results['message']: msg += f" because {results['message']}"
+            _LOGGER.warn(msg)
+            return {
+                'status'    : results['status'],
+                'metric'    : np.inf if self.lower_is_better else -np.inf,
+                'params'    : configuration,
+                'iteration' : iteration,
+                'id'        : i
+            }
+        
+        # Find best metric so far and compare results to see if current result is better
+        if self.lower_is_better:
+            if results['metric'] < self.best_results['metric']:
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                self.best_results['metric'] = results['metric']
+                self.best_results['params'] = configuration        
+        else:
+            if results['metric'] > self.best_results['metric']:
+                if self.verbose:
+                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                self.best_results['metric'] = results['metric']
+                self.best_results['params'] = configuration        
+ 
+        return {
+            'status'    : results['status'],
+            'metric'    : results['metric'],
+            'params'    : configuration,
+            'iteration' : iteration,
+            'id'        : i
+            }
 
     @abstractmethod
     def search(self):
@@ -78,11 +138,12 @@ class BaseOptimizer(ABC):
         # Unroll parameters
         df_params = df.pop('params')
         for sname in df_params.iloc[0].keys():
+            import pdb; pdb.set_trace()
             columns = self._colmapper.get(sname, None)
             records = df_params.apply(lambda x: x[sname]).values.tolist()
             df      = pd.concat([df, 
-                                 pd.DataFrame.from_records(records, columns=columns)
-                                 ], axis=1)
+                                 pd.DataFrame.from_records(records, columns=columns)], 
+                                 axis=1)
         
         # Sort by metric
         df = df.sort_values(by='metric', ascending=self.lower_is_better)\

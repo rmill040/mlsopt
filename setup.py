@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import io
 from os.path import dirname, join
-from pathlib import Path
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
 import versioneer
+
 
 def list_reqs(fname="requirements.txt"):
     """Gather requirements from the requirements.txt file.

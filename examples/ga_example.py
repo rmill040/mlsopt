@@ -11,6 +11,7 @@ from mlsopt.utils import STATUS_FAIL, STATUS_OK
 
 SEED = 1718
 
+
 def main():
     """Optimize feature selection and hyperparameters for extreme gradient 
     boosted model using genetic algorithm.
@@ -25,7 +26,11 @@ def main():
     # Define Samplers #
     ###################
 
-    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1])    
+    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1], dynamic_update=True, muting_threshold=.5)
+    
+    import numpy as np
+    data = np.random.binomial(1, .5, (100, X.shape[1]))
+    feature_sampler.update_space(data)
     hp_sampler      = XGBClassifierSampler()
     sampler         = PipelineSampler(seed=SEED)\
                         .register_sampler(feature_sampler, name='feature')\
@@ -50,12 +55,12 @@ def main():
         """
         try:
             # Subset features
-            cols = chromosome['feature'] # Matches name of feature_sampler
+            cols = chromosome['feature']  # Matches name of feature_sampler
             X_   = X[:, cols]
             
             # Define model
-            hp  = chromosome['hp']       # Matches name of hp_sampler
-            clf = XGBClassifier(**hp, random_state=SEED)
+            hp  = chromosome['hp']        # Matches name of hp_sampler
+            clf = XGBClassifier(**hp)
             
             # Run 5-fold stratified cross-validation using AUC as metric
             metric = cross_val_score(clf, X_, y, cv=5, n_jobs=1, scoring='roc_auc')
@@ -94,8 +99,8 @@ def main():
                       seed=1718)
 
     opt.search(objective=objective, 
-              sampler=sampler, 
-              lower_is_better=False)
+               sampler=sampler, 
+               lower_is_better=False)
     
     opt.serialize('gaoptimizer_results.csv')
     opt.plot_history()

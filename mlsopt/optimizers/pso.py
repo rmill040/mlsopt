@@ -601,13 +601,13 @@ class PSOptimizer(BaseOptimizer):
             if converged:
                 if self.verbose:
                     _LOGGER.info("optimization converged: " + 
-                                f"{iteration}/{self.max_iterations} - stopping " + 
-                                "criteria below tolerance")
+                                 f"{iteration}/{self.max_iterations} - stopping " + 
+                                 "criteria below tolerance")
                 break
 
             if new_best and self.verbose:
                 _LOGGER.info("new swarm best: " + 
-                            f"{iteration}/{self.max_iterations} - {round(gbest_o, 4)}")
+                             f"{iteration}/{self.max_iterations} - {round(gbest_o, 4)}")
 
             # Continue optimization
             iteration += 1

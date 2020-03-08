@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from ConfigSpace import ConfigurationSpace
 
 __all__ = ["BaseSampler"]
 
@@ -10,10 +9,8 @@ class BaseSampler(ABC):
     @abstractmethod
     def __init__(self, dynamic_update, seed=None):
         self.dynamic_update = dynamic_update
-        self.seed           = 0 if seed is None else seed
+        self._seed          = 0 if seed is None else seed
         self._valid_sampler = True
-        self.space          = ConfigurationSpace(name=self.__typename__, 
-                                                 seed=self.seed)
 
     @abstractmethod
     def __str__(self):
@@ -30,6 +27,16 @@ class BaseSampler(ABC):
     @property
     def __typename__(self):
         return type(self).__name__
+    
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, value):
+        self._seed = value
+        if hasattr(self, "space"): 
+            self.space.seed(value)
     
     @abstractmethod
     def sample_space(self):

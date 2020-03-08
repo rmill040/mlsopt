@@ -1,3 +1,4 @@
+from ConfigSpace import ConfigurationSpace
 import ConfigSpace.hyperparameters as CSH
 import logging
 import numpy as np
@@ -134,7 +135,12 @@ class BernoulliFeatureSampler(BaseSampler):
         Returns
         -------
         """
-        kwargs = {'choices': [0, 1], 'default_value': 1, 'meta': {'support': True}}
+        self.space = ConfigurationSpace(name=self.__typename__, seed=self.seed)
+        kwargs     = {
+            'choices'       : [0, 1],
+            'default_value' : 1,
+            'meta'          : {'support': True, 'updated': False}
+            }
         for name, proba in zip(self.feature_names, self.selection_proba):
             name = str(name)
             self.space.add_hyperparameter(
@@ -152,7 +158,7 @@ class BernoulliFeatureSampler(BaseSampler):
         Returns
         -------
         """
-        return self.space.sample_configuration().get_array()
+        return self.space.sample_configuration().get_array().astype(bool)
 
     def update_space(self, data): 
         """Update selection probabilities and feature support.
@@ -191,12 +197,16 @@ class BernoulliFeatureSampler(BaseSampler):
                                         self.selection_proba, 
                                         self.support):    
             name = str(name)
-                    
+
             # If support is False, force probabilities to always select 0 and 
             # update meta-data to indicate support is now False
             if not support:
                 new_proba = [1, 0]
-                self.space.get_hyperparameter(name).meta = {"support": False}
             else:
                 new_proba = [1 - proba, proba]
             self.space.get_hyperparameter(name).probabilities = new_proba
+
+            self.space.get_hyperparameter(name).meta.update({
+                "support" : support,
+                "updated" : True
+                })
