@@ -137,8 +137,8 @@ class BernoulliFeatureSampler(BaseSampler):
         """
         self.space = ConfigurationSpace(name=self.__typename__, seed=self.seed)
         kwargs     = {
-            'choices'       : [0, 1],
-            'default_value' : 1,
+            'choices'       : [False, True],
+            'default_value' : True,
             'meta'          : {'support': True, 'updated': False}
             }
         for name, proba in zip(self.feature_names, self.selection_proba):
@@ -158,8 +158,20 @@ class BernoulliFeatureSampler(BaseSampler):
         Returns
         -------
         """
-        return self.space.sample_configuration().get_array().astype(bool)
+        space = self.space.sample_configuration()
+        
+        # ConfigSpace sorts keys alphabetically by default, so we update the 
+        # sampled values to reflect the ordering provided in self.feature_names
+        if not np.all(np.array(space.keys()) == self.feature_names):
+            sample = space.get_dictionary()
+            values = np.array([True]*self.n_features)
+            for i, name in enumerate(self.feature_names):
+                values[i] = sample[name]
+        else:
+            values = self.space.sample_configuration().get_array().astype(bool)
 
+        return values
+    
     def update_space(self, data): 
         """Update selection probabilities and feature support.
         

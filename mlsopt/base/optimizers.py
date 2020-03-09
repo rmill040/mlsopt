@@ -24,8 +24,8 @@ class BaseOptimizer(ABC):
     def __init__(self, backend, verbose, n_jobs, seed):
         # Define backend for parallel computation
         if backend not in ['loky', 'threading', 'multiprocessing']:
-            _LOGGER.exception(f"backend {backend} not a valid argument, use " + 
-                              "loky, threading, or multiprocessing")
+            _LOGGER.error(f"backend {backend} not a valid argument, use " + 
+                          "loky, threading, or multiprocessing")
             raise ValueError
         self.backend = backend
  
@@ -36,13 +36,14 @@ class BaseOptimizer(ABC):
         elif abs(n_jobs) > max_cpus:
             n_jobs = max_cpus
         else:
-            if n_jobs < 0: n_jobs = list(range(1, cpu_count()+1))[n_jobs]
+            if n_jobs < 0: n_jobs = list(range(1, cpu_count() + 1))[n_jobs]
         self.n_jobs = n_jobs
 
-        self.verbose = verbose
-        self.seed    = seed
-        self.rng     = RandomState(seed=seed)
-        self.history = []
+        self.verbose   = verbose
+        self.seed      = seed
+        self.rng       = RandomState(seed=seed)
+        self.history   = []
+        self._hp_names = {}
 
         # Keep track of best results
         self.best_results           = Manager().dict()
@@ -61,18 +62,46 @@ class BaseOptimizer(ABC):
     def __typename__(self):
         return type(self).__name__
     
-    def _evaluate_single_config(self, 
-                                 objective, 
-                                 configuration, 
-                                 i, 
-                                 iteration):
-        """Calculate objective function for a single configuration.
+    def _cache_hp_names(self, sampler):
+        """ADD HERE
         
         Parameters
         ----------
         
         Returns
         -------
+        """
+        for sname, sdist in sampler.samplers.items():
+            if sdist.__type__ == 'feature':
+                self._hp_names[sname] = sdist.feature_names
+            else:
+                self._hp_names[sname] = np.array(sdist.space.get_hyperparameter_names())
+    
+    def _evaluate_single_config(self, 
+                                objective, 
+                                configuration, 
+                                i, 
+                                iteration):
+        """Calculate objective function for a single configuration.
+        
+        Parameters
+        ----------
+        objective : callable function
+            Function to be optimized.
+            
+        configuration : dict
+            Key/value pairs with the sampler name and sampled values.
+            
+        i : int
+            Configuration ID.
+            
+        iteration : int
+            Iteration of optimizer.
+        
+        Returns
+        -------
+        dict
+            Key/value pairs containing results of evaluating configuration.
         """
         if self.verbose and i % self.n_jobs == 0:
             _LOGGER.info(f"evaluating configurations, {self.n_configurations - i} " + 
@@ -138,12 +167,17 @@ class BaseOptimizer(ABC):
         # Unroll parameters
         df_params = df.pop('params')
         for sname in df_params.iloc[0].keys():
-            import pdb; pdb.set_trace()
-            columns = self._colmapper.get(sname, None)
             records = df_params.apply(lambda x: x[sname]).values.tolist()
-            df      = pd.concat([df, 
-                                 pd.DataFrame.from_records(records, columns=columns)], 
-                                 axis=1)
+            df_tmp  = pd.DataFrame.from_records(records)
+            
+            # Fix columns if found
+            columns = self._hp_names.get(sname, None)
+            if columns is not None:
+                columns = np.array(
+                    list(map(lambda x: sname + "-" + x, columns))
+                )
+            df_tmp.columns = columns
+            df             = pd.concat([df, df_tmp], axis=1)
         
         # Sort by metric
         df = df.sort_values(by='metric', ascending=self.lower_is_better)\

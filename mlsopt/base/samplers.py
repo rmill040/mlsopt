@@ -30,10 +30,32 @@ class BaseSampler(ABC):
     
     @property
     def seed(self):
+        """Getter method for seed.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        int
+            Seed value.
+        """
         return self._seed
 
     @seed.setter
     def seed(self, value):
+        """Setter method for seed.
+        
+        Parameters
+        ----------
+        value : int
+            New seed value.
+        
+        Returns
+        -------
+        None
+        """
         self._seed = value
         if hasattr(self, "space"): 
             self.space.seed(value)

@@ -307,7 +307,10 @@ class GAOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        start = time.time()  
+        start = time.time()
+        
+        # Cache hp names
+        self._cache_hp_names(sampler)
         
         # Set this as an attribute
         self.lower_is_better = lower_is_better

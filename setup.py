@@ -57,7 +57,7 @@ SCRIPTS              = []
 LICENSE              = "MIT"
 MIN_PYTHON_VERSION   = ">=3.5.*"
 ZIP_SAFE             = False
-CLASSIFIERS          = ['Programming Language :: Python :: 3.5',
+CLASSIFIERS          = ['Programming Language :: Python :: 3.5'
                         'Programming Language :: Python :: 3.6',
                         'Programming Language :: Python :: 3.7',
                         'Development Status :: 3 - Alpha',

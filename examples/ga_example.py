@@ -20,13 +20,17 @@ def main():
     # Load Data #
     #############
 
-    X, y = load_breast_cancer(return_X_y=True)
+    X, y          = load_breast_cancer(return_X_y=True)
+    feature_names = load_breast_cancer()['feature_names']
 
     ###################
     # Define Samplers #
     ###################
 
-    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1], dynamic_update=True, muting_threshold=.5)
+    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1], 
+                                              feature_names=feature_names, 
+                                              dynamic_update=True, 
+                                              muting_threshold=.5)
     
     import numpy as np
     data = np.random.binomial(1, .5, (100, X.shape[1]))
@@ -104,6 +108,7 @@ def main():
     
     opt.serialize('gaoptimizer_results.csv')
     opt.plot_history()
+
 
 if __name__ == "__main__":
     main()
