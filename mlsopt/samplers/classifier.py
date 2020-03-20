@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 
 # Package imports
-from ..base.samplers import BaseSampler
+from ..base import BaseSampler
 
 __all__ = [
     "LGBMClassifierSampler",

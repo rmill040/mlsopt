@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 # Package imports
-from ..base.samplers import BaseSampler
+from ..base import BaseSampler
 
 __all__ = ["BernoulliFeatureSampler"]
 _LOGGER = logging.getLogger(__name__)

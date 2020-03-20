@@ -5,7 +5,7 @@ import numpy as np
 import time
 
 # Package imports
-from ..base.optimizers import BaseOptimizer
+from ..base import BaseOptimizer
 
 __all__ = ["GAOptimizer"]
 _LOGGER = logging.getLogger(__name__)

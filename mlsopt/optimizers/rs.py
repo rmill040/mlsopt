@@ -5,7 +5,7 @@ import pandas as pd
 import time
 
 # Package imports
-from ..base.optimizers import BaseOptimizer
+from ..base import BaseOptimizer
 
 __all__ = ["RSOptimizer"]
 _LOGGER = logging.getLogger(__name__)
@@ -81,8 +81,6 @@ class RSOptimizer(BaseOptimizer):
         # Add to history
         self.history.append(results)
 
-        return results
-
     def _update_space(self, sampler, hof):
         """ADD
         
@@ -140,9 +138,9 @@ class RSOptimizer(BaseOptimizer):
             configs = sampler.sample_space(n_samples=self.n_configurations)
 
             # Evaluate configs
-            _ = self._evaluate(objective=objective,
-                               configs=configs,
-                               iteration=iteration)
+            self._evaluate(objective=objective,
+                           configs=configs,
+                           iteration=iteration)
 
             # Update search space now
             if self.dynamic_update:

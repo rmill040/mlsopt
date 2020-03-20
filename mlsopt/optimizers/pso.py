@@ -6,7 +6,7 @@ import pandas as pd
 import time
 
 # Package imports
-from ..base.optimizers import BaseOptimizer
+from ..base import BaseOptimizer
 from ..utils import STATUS_FAIL, STATUS_OK
 
 __all__ = ["PSOptimizer"]
