@@ -108,8 +108,8 @@ def update_results(*,
     
 
 def main():
-    """Main function to run classifier experiment"""
-
+    """Main function to run classifier experiment.
+    """
     start = time.time()
 
     # Begin experiments
