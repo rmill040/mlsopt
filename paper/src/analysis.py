@@ -201,9 +201,47 @@ def main():
 
     print(df_sub.groupby('method')['idx_ratio'].describe().reset_index().round(4))
     print("*"*30)
+    
+    # Table -- Calculate time by method and data set
+    print("*"*30)
+    print("Table: Percent Best Iteration by Method and Data Set")
+    print("*"*30)
+    df_pivot = pd.pivot_table(data=df_sub, columns='method', index='name', values='idx_ratio')
+    df_pivot = df_pivot[['tpe', 'rs', 'rsdu', 'ga', 'pso']]
+    df_pivot = df_pivot.reindex(index=['ALLAML.csv', 
+                                       'cancer.csv', 
+                                       'CLL_SUB_111.csv', 
+                                       'madelon.csv', 
+                                       'orlraws10P.csv', 
+                                       'pixraw10P.csv',
+                                       'spam.csv', 
+                                       'TOX_171.csv', 
+                                       'warpAR10P.csv', 
+                                       'warpPIE10P.csv', 
+                                       'Yale.csv', 
+                                       'sim_n100_p200_i2.csv', 
+                                       'sim_n100_p200_i20.csv', 
+                                       'sim_n100_p500_i5.csv', 
+                                       'sim_n100_p500_i50.csv'])
+    print(100 * df_pivot.round(2))
+    print("\n")
+
+    # Table -- Calculate number of winning methods across data sets
+    print("*"*30)
+    print("Table: PERCENT BEST ITERATION - Number of 'Winners' Across Data Sets")
+    print("*"*30)
+    winners = {method: 0 for method in df_sub['method'].unique()}
+    for name in df_sub['name'].unique():
+        tmp = df_sub[df_sub['name'] == name].sort_values(by='idx_ratio')
+        print(tmp[['name', 'method', 'metric']].round(4))
+        names = tmp[tmp['idx_ratio'] == tmp['idx_ratio'].max()]['method'].tolist()
+        for name in names:
+            winners[name] += 1
+    print(winners)
+    print("\n")
 
     # Figure -- Random search with and without dynamic updates
-    # rs_vs_rsdu()
+    rs_vs_rsdu()
 
     # ANOVA on metrics
     print("ANOVA: metric ~ C(method)")
