@@ -5,7 +5,7 @@ import pandas as pd
 
 # Package imports
 from ..base import BaseSampler
-from ..utils import Constants
+from ..constants import C_DISTRIBUTIONS, HP_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class ClassifierSamplerMixin(BaseSampler):
         str
             Sampler type.
         """
-        return "hyperparameter"
+        return HP_TYPE
 
     def sample_space(self):
         """Sample hyperparameter distributions.
@@ -132,7 +132,7 @@ class ClassifierSamplerMixin(BaseSampler):
             dist_type = type(hp).__name__
             
             # Numerical distribution
-            if dist_type in Constants.C_DISTRIBUTIONS:
+            if dist_type in C_DISTRIBUTIONS:
                 min_value, max_value = data[name].min(), data[name].max()
                 hp.lower             = min_value
                 hp.upper             = max_value

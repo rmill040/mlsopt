@@ -5,6 +5,7 @@ import numpy as np
 
 # Package imports
 from ..base import BaseSampler
+from ..constants import FEATURE_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ class BernoulliFeatureSampler(BaseSampler):
         Returns
         -------
         """
-        return "feature"
+        return FEATURE_TYPE
 
     def _default_feature_names(self):
         """ADD

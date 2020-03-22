@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Union
 
 # Package imports
 from ..base import BaseOptimizer
-from ..utils import NUMERIC_TYPE, STATUS_FAIL, STATUS_OK
+from ..constants import NUMERIC_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,46 +97,41 @@ class PSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        self._swarm = {}
+        # Initialize metadata for each sampler
+        self._swarm = {'bpso': [], 'cpso': []}
         for sname, sdist in sampler._registered.items():
             meta = {}
             if sdist.__type__ == 'feature':
+                self._swarm['bpso'].append(sname)
                 meta['pnames'] = sdist.feature_names
-            
-            if sdist.__type__ == 'hyperparameter':
+            elif sdist.__type__ == 'hyperparameter':
+                self._swarm['cpso'].append(sname)
                 bounds = {}
+                pnames = []
                 for hp in sdist.space.get_hyperparameters():
+                    pnames.append(hp.name)
                     bounds[hp.name] = (hp.lower, hp.upper)
-                    
                 
-                meta['bounds'] = bounds
-           
-            meta['dimensions'] = len(meta['pnames'])
+                meta['pnames']     = np.array(pnames)
+                meta['bounds']     = bounds
+                meta['dimensions'] = len(meta['pnames'])
+            else:
+                msg = f"sampler type {sdist.__type__} not recognized"
+                _LOGGER.error(msg)
+                raise ValueError(msg)
+            
+            # Update dictionary
             self._swarm[sname] = meta
+        
+        # Initialize samples
+        _samples = sampler.sample_space(n_samples=self.n_particles, 
+                                        return_combined=True)
+        import pdb; pdb.set_trace()
 
 
     #     # Multiplier
     #     max_score = np.inf if self.lower_is_better else -np.inf
 
-    #             c_sname = sname
-    #             for pname, pdist in sdist.space.items():
-    #                 dname, bounds = parse_hyperopt_param(str(pdist))
-    #                 if dname in ['choice', 'pchoice']: continue
-                    
-    #                 lb, ub = bounds[:2]
-    #                 if 'log' in dname:
-    #                     lb, ub = exp(lb), exp(ub)
-                
-    #                 c_lb.append(lb)
-    #                 c_ub.append(ub)
-    #                 c_dimensions += 1
-    #                 c_pnames.append(pname)
-
-    #                 # Define dtypes
-    #                 if dname.startswith("q"):
-    #                     self._c_dtypes[pname] = int
-    #                 else:
-    #                     self._c_dtypes[pname] = float
         
     #     # Convert bounds to numpy arrays
     #     b_lb = np.array(b_lb)

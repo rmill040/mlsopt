@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 
 # Package imports
-from .utils import Constants
+from .constants import STATUS_FAIL, STATUS_OK
 
 matplotlib.style.use("ggplot")
 
@@ -111,8 +111,8 @@ class BaseOptimizer(ABC):
         results = objective(configuration)
 
         # Check if failure occurred during objective func evaluation
-        if Constants.STATUS_FAIL in results['status'].upper() or \
-           Constants.STATUS_OK not in results['status'].upper():
+        if STATUS_FAIL in results['status'].upper() or \
+           STATUS_OK not in results['status'].upper():
             msg = "running configuration failed"
             if 'message' in results.keys():
                 if results['message']: msg += f" because {results['message']}"

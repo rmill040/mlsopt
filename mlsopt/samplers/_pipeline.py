@@ -3,6 +3,7 @@ import pandas as pd
 
 # Package imports
 from ..base import BaseSampler
+from ..constants import PIPELINE_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ class PipelineSampler(BaseSampler):
         str
             Sampler type.
         """
-        return "pipeline"
+        return PIPELINE_TYPE
 
     def register_sampler(self, sampler, name=None):
         """ADD

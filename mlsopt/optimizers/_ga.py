@@ -129,8 +129,7 @@ class GAOptimizer(BaseOptimizer):
         if self.verbose:
             _LOGGER.info("running tournament selection to select new parents")
 
-        selector = np.argmin if self.lower_is_better else np.argmax
-        parents  = []
+        parents = []
 
         # Add hof to parents
         if self.n_hof:
@@ -171,6 +170,7 @@ class GAOptimizer(BaseOptimizer):
             'replace' : False
             }
 
+        selector = np.argmin if self.lower_is_better else np.argmax
         while len(parents) < self.n_population:
             # Randomly select k chromosomes
             idx = self.rng.choice(**kwargs)
@@ -306,7 +306,7 @@ class GAOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        start = time.time()
+        tic = time.time()
         
         # Cache hp names
         self._cache_hp_names(sampler)
@@ -346,7 +346,8 @@ class GAOptimizer(BaseOptimizer):
             population = self._mutation(population, sampler)
         
         # Finished
-        minutes = round((time.time() - start) / 60, 2)
+        toc     = time.time()
+        minutes = round((toc - tic) / 60, 2)
         if self.verbose:
             _LOGGER.info(f"finished searching in {minutes} minutes")
 

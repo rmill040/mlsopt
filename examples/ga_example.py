@@ -7,7 +7,7 @@ from mlsopt.optimizers import GAOptimizer
 from mlsopt.samplers import (
     BernoulliFeatureSampler, PipelineSampler, XGBClassifierSampler
 )
-from mlsopt.utils import STATUS_FAIL, STATUS_OK
+from mlsopt.constants import STATUS_FAIL, STATUS_OK
 
 SEED = 1718
 
@@ -28,13 +28,7 @@ def main():
     ###################
 
     feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1], 
-                                              feature_names=feature_names, 
-                                              dynamic_update=True, 
-                                              muting_threshold=.5)
-    
-    import numpy as np
-    data = np.random.binomial(1, .5, (100, X.shape[1]))
-    feature_sampler.update_space(data)
+                                              feature_names=feature_names)
     hp_sampler      = XGBClassifierSampler()
     sampler         = PipelineSampler(seed=SEED)\
                         .register_sampler(feature_sampler, name='feature')\
