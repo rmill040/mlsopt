@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 
 # Package imports
-from .utils import STATUS_FAIL, STATUS_OK
+from .utils import Constants
 
 matplotlib.style.use("ggplot")
 
@@ -71,7 +71,7 @@ class BaseOptimizer(ABC):
         Returns
         -------
         """
-        for sname, sdist in sampler.samplers.items():
+        for sname, sdist in sampler._registered.items():
             if sdist.__type__ == 'feature':
                 self._hp_names[sname] = sdist.feature_names
             else:
@@ -111,7 +111,8 @@ class BaseOptimizer(ABC):
         results = objective(configuration)
 
         # Check if failure occurred during objective func evaluation
-        if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
+        if Constants.STATUS_FAIL in results['status'].upper() or \
+           Constants.STATUS_OK not in results['status'].upper():
             msg = "running configuration failed"
             if 'message' in results.keys():
                 if results['message']: msg += f" because {results['message']}"
@@ -236,10 +237,10 @@ class BaseSampler(ABC):
     """Base sampler class.
     """
     @abstractmethod
-    def __init__(self, dynamic_update, seed=None):
-        self.dynamic_update = dynamic_update
-        self._seed          = 0 if seed is None else seed
-        self._valid_sampler = True
+    def __init__(self, dynamic_updating, seed=None):
+        self.dynamic_updating = dynamic_updating
+        self._seed            = 0 if seed is None else seed
+        self._valid_sampler   = True
 
     @abstractmethod
     def __str__(self):

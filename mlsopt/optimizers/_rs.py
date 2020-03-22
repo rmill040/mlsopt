@@ -7,7 +7,6 @@ import time
 # Package imports
 from ..base import BaseOptimizer
 
-__all__ = ["RSOptimizer"]
 _LOGGER = logging.getLogger(__name__)
 
 

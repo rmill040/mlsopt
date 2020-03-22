@@ -4,33 +4,44 @@ from math import exp
 import numpy as np
 import pandas as pd
 import time
+from typing import Optional, Tuple, Union
 
 # Package imports
 from ..base import BaseOptimizer
-from ..utils import STATUS_FAIL, STATUS_OK
+from ..utils import NUMERIC_TYPE, STATUS_FAIL, STATUS_OK
 
-__all__ = ["PSOptimizer"]
 _LOGGER = logging.getLogger(__name__)
 
 
 class PSOptimizer(BaseOptimizer):
-    """ADD HERE.
+    """Particle swarm optimization (PSO) that uses a binary PSO algorithm for 
+    features and a continuous PSO algorithm for hyperparameters.
 
     Parameters
     ----------
+    n_particles : int
+        Number of particles in swarm.
+        
+    omega_bounds : tuple, optional (default=(0.10, 0.90))
+        ADD HERE.
+    
+    v_bounds : tuple or None, optional (default=None)
+        ADD HERE.
+        
+    
     """
     def __init__(self, 
-                 n_particles,
-                 omega_bounds=(0.10, 0.90),
-                 v_bounds=None,
-                 phi_p=1.0,
-                 phi_g=2.0,
-                 max_iterations=10,
-                 tolerance=1e-6,
-                 n_jobs=1,
-                 backend='loky',
-                 verbose=0,
-                 seed=None):
+                 n_particles: int,
+                 omega_bounds: Optional[Tuple[NUMERIC_TYPE, NUMERIC_TYPE]] = (0.10, 0.90),
+                 v_bounds: Optional[Union[Tuple[NUMERIC_TYPE, NUMERIC_TYPE], None]] = None,
+                 phi_p: Optional[NUMERIC_TYPE] = 1.0,
+                 phi_g: Optional[NUMERIC_TYPE] = 2.0,
+                 max_iterations: Optional[int] = 10,
+                 tolerance: Optional[float] = 1e-6,
+                 n_jobs: Optional[int] = 1,
+                 backend: Optional[str] = 'loky',
+                 verbose: Optional[Union[bool, int]] = 0,
+                 seed: Optional[Union[None, int]] = None) -> None:
         self.n_particles    = n_particles
         self.omega_bounds   = omega_bounds
         self.v_bounds       = v_bounds
@@ -86,51 +97,27 @@ class PSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        import pdb; pdb.set_trace()
-        
-    def _bpso_update(self):
-        pass
-    
-    def _cpso_update(self):
-        pass
+        self._swarm = {}
+        for sname, sdist in sampler._registered.items():
+            meta = {}
+            if sdist.__type__ == 'feature':
+                meta['pnames'] = sdist.feature_names
+            
+            if sdist.__type__ == 'hyperparameter':
+                bounds = {}
+                for hp in sdist.space.get_hyperparameters():
+                    bounds[hp.name] = (hp.lower, hp.upper)
+                    
+                
+                meta['bounds'] = bounds
+           
+            meta['dimensions'] = len(meta['pnames'])
+            self._swarm[sname] = meta
 
-    # def _initialize_swarm(self, sampler):
-    #     """Initialize the swarm.
-        
-    #     Parameters
-    #     ----------
-        
-    #     Returns
-    #     -------
-    #     """
-    #     # Binary PSO
-    #     b_lb         = []
-    #     b_ub         = []
-    #     b_pnames     = []
-    #     b_sname      = None
-    #     b_dimensions = 0
-
-    #     # Continuous PSO
-    #     c_lb           = []
-    #     c_ub           = []
-    #     c_pnames       = []
-    #     c_sname        = None
-    #     c_dimensions   = 0
-    #     self._c_dtypes = {}
 
     #     # Multiplier
     #     max_score = np.inf if self.lower_is_better else -np.inf
 
-    #     for sname, sdist in sampler.samplers.items():
-    #         if sdist.__type__ == 'feature':
-    #             pnames        = sdist.space.keys()
-    #             n_dimensions  = len(pnames)
-    #             b_lb          = [0] * n_dimensions
-    #             b_ub          = [1] * n_dimensions 
-    #             b_dimensions  = n_dimensions
-    #             b_pnames      = pnames
-    #             b_sname       = sname
-    #         else:
     #             c_sname = sname
     #             for pname, pdist in sdist.space.items():
     #                 dname, bounds = parse_hyperopt_param(str(pdist))
@@ -206,7 +193,13 @@ class PSOptimizer(BaseOptimizer):
     #         'gbest_x'      : gbest_x,
     #         'gbest_o'      : gbest_o
     #     }
-        
+
+    def _bpso_update(self):
+        pass
+    
+    def _cpso_update(self):
+        pass
+
     # def _calculate_single_particle(self, 
     #                                objective, 
     #                                particle, 

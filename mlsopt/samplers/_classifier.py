@@ -5,12 +5,7 @@ import pandas as pd
 
 # Package imports
 from ..base import BaseSampler
-
-__all__ = [
-    "LGBMClassifierSampler",
-    "SGBMClassifierSampler",
-    "XGBClassifierSampler"
-]
+from ..utils import Constants
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +18,7 @@ class ClassifierSamplerMixin(BaseSampler):
     distribution : list or None, optional (default=None)
         Hyperparameter distributions.
     
-    dynamic_update : bool, optional (default=False)
+    dynamic_updating : bool, optional (default=False)
         Whether to allow space updating.
         
     early_stopping : bool, optional (default=False)
@@ -35,13 +30,13 @@ class ClassifierSamplerMixin(BaseSampler):
     """
     def __init__(self, 
                  distributions=None,
-                 dynamic_update=False, 
+                 dynamic_updating=False, 
                  early_stopping=False,
                  seed=None):
         self.distributions  = distributions 
         self.early_stopping = early_stopping
     
-        super().__init__(dynamic_update=dynamic_update, seed=seed)
+        super().__init__(dynamic_updating=dynamic_updating, seed=seed)
         
         # Initialize distributions
         self._init_distributions()
@@ -60,7 +55,7 @@ class ClassifierSamplerMixin(BaseSampler):
         """
         names = self.space.get_hyperparameter_names()
         return f"{self.__typename__}(space={names}, " + \
-               f"dynamic_update={self.dynamic_update}, " + \
+               f"dynamic_updating={self.dynamic_updating}, " + \
                f"early_stopping={self.early_stopping}, seed={self.seed})"
 
     def __repr__(self):
@@ -119,7 +114,7 @@ class ClassifierSamplerMixin(BaseSampler):
         -------
         None
         """
-        if not self.dynamic_update: return
+        if not self.dynamic_updating: return
         
         # Data must be a dataframe
         if not isinstance(data, pd.DataFrame):
@@ -137,10 +132,7 @@ class ClassifierSamplerMixin(BaseSampler):
             dist_type = type(hp).__name__
             
             # Numerical distribution
-            if dist_type in ['UniformIntegerHyperparameter',
-                             'NormalIntegerHyperparameter',
-                             'UniformFloatHyperparameter',
-                             'NormalFloatHyperparameter']:
+            if dist_type in Constants.C_DISTRIBUTIONS:
                 min_value, max_value = data[name].min(), data[name].max()
                 hp.lower             = min_value
                 hp.upper             = max_value

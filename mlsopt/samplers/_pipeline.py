@@ -4,7 +4,6 @@ import pandas as pd
 # Package imports
 from ..base import BaseSampler
 
-__all__ = ["PipelineSampler"]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -15,10 +14,10 @@ class PipelineSampler(BaseSampler):
     ----------
     """
     def __init__(self, seed=None):
-        self.samplers     = {}
+        self._registered  = {}
         self._initialized = False
         
-        super().__init__(dynamic_update=True, seed=seed)
+        super().__init__(dynamic_updating=True, seed=seed)
         
     def __str__(self):
         """String representation of class.
@@ -32,7 +31,7 @@ class PipelineSampler(BaseSampler):
         str
             Class string.
         """
-        return f"{self.__typename__}(dynamic_update={self.dynamic_update}, " + \
+        return f"{self.__typename__}(dynamic_updating={self.dynamic_updating}, " + \
                f"seed={self.seed})"
     
     def __repr__(self):
@@ -84,16 +83,16 @@ class PipelineSampler(BaseSampler):
             name = sampler.__typename__
 
         # Check if name already exists in registered samplers
-        if name in self.samplers:
+        if name in self._registered:
             _LOGGER.warn(f"sampler <{name}> already registered as a " + 
-                         f"<{self.samplers[name].__type__}> sampler, " + 
+                         f"<{self._registered[name].__type__}> sampler, " + 
                          f"replacing sampler with new <{sampler.__type__}> " + 
                          "sampler")
         
         # Add sampler and update seed to match seed defined in constructor
-        sampler.seed        = self.seed
-        self.samplers[name] = sampler
-        self._initialized   = True
+        sampler.seed           = self.seed
+        self._registered[name] = sampler
+        self._initialized      = True
         return self
 
     def sample_space(self, n_samples=1, return_combined=True):
@@ -113,7 +112,7 @@ class PipelineSampler(BaseSampler):
         for _ in range(n_samples):
             samples.append(
                 {name: sampler.sample_space() for 
-                    name, sampler in self.samplers.items()}
+                    name, sampler in self._registered.items()}
             )
 
         # Return all samples together if specified
@@ -123,7 +122,7 @@ class PipelineSampler(BaseSampler):
         # Otherwise split sampled spaces if specified
         split_samples = {}
         samples       = pd.DataFrame(samples)
-        for name in self.samplers.keys():
+        for name in self._registered.keys():
             split_samples[name] = pd.DataFrame.from_records(samples[name])
         return split_samples
 
@@ -140,7 +139,7 @@ class PipelineSampler(BaseSampler):
             _LOGGER.error("sampler not initialized, space undefined")
             raise ValueError
         try:
-            self.samplers[name].update_space(data)
+            self._registered[name].update_space(data)
         except Exception as e:
             _LOGGER.exception("error trying to update space for sampler " + 
                               f"<{name}> because {e}")

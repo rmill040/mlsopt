@@ -6,7 +6,6 @@ import numpy as np
 # Package imports
 from ..base import BaseSampler
 
-__all__ = ["BernoulliFeatureSampler"]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -28,7 +27,7 @@ class BernoulliFeatureSampler(BaseSampler):
     muting_threshold : float, optional (default=0.0)
         Threshold to use when muting features during space updates.
     
-    dynamic_update : bool, optional (default=False)
+    dynamic_updating : bool, optional (default=False)
         Whether to allow space updating.
     
     seed : int, optional (default=None)
@@ -39,7 +38,7 @@ class BernoulliFeatureSampler(BaseSampler):
                  selection_proba=None,
                  feature_names=None,
                  muting_threshold=0.0,
-                 dynamic_update=False,
+                 dynamic_updating=False,
                  seed=None):
         self.n_features = n_features
 
@@ -61,7 +60,7 @@ class BernoulliFeatureSampler(BaseSampler):
         self.muting_threshold = muting_threshold
         self.support          = np.repeat(True, self.n_features)
         
-        super().__init__(dynamic_update=dynamic_update, seed=seed)
+        super().__init__(dynamic_updating=dynamic_updating, seed=seed)
         
         # Initialize distributions
         self._init_distributions()
@@ -88,7 +87,7 @@ class BernoulliFeatureSampler(BaseSampler):
         return f"FeatureSampler(n_features={self.n_features}, " + \
                f"selection_proba={str_sp}, feature_names={str_fn}, " + \
                f"muting_threshold={self.muting_threshold}, " + \
-               f"dynamic_update={self.dynamic_update}, seed={self.seed})"
+               f"dynamic_updating={self.dynamic_updating}, seed={self.seed})"
 
     def __repr__(self):
         """ADD
@@ -182,8 +181,7 @@ class BernoulliFeatureSampler(BaseSampler):
         Returns
         -------
         """
-        # If no dynamic updates not specified, no need to do anything here
-        if not self.dynamic_update: return
+        if not self.dynamic_updating: return
                     
         # Update selection probabilities
         self.selection_proba = np.mean(data, axis=0)
