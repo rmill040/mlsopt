@@ -7,9 +7,10 @@ from mlsopt.optimizers import PSOptimizer
 from mlsopt.samplers import (
     BernoulliFeatureSampler, PipelineSampler, XGBClassifierSampler
 )
-from mlsopt.utils import STATUS_FAIL, STATUS_OK
+from mlsopt.constants import STATUS_FAIL, STATUS_OK
 
 SEED = 1718
+
 
 def main():
     """Optimize feature selection and hyperparameters for extreme gradient 
@@ -19,13 +20,15 @@ def main():
     # Load Data #
     #############
 
-    X, y = load_breast_cancer(return_X_y=True)
+    X, y          = load_breast_cancer(return_X_y=True)
+    feature_names = load_breast_cancer()['feature_names']
 
     ###################
     # Define Samplers #
     ###################
 
-    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1])
+    feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1],
+                                              feature_names=feature_names)
     hp_sampler      = XGBClassifierSampler()
     sampler         = PipelineSampler(seed=SEED)\
                         .register_sampler(feature_sampler, name='feature')\
@@ -36,7 +39,7 @@ def main():
     #############################
 
     def objective(params): 
-        """Objective function to maximize using particle swarm optimization.
+        """Objective function to optimize using particle swarm optimization.
 
         Parameters
         ----------
@@ -50,7 +53,7 @@ def main():
         """
         try:
             # Subset features
-            cols = params['feature'] # Matches name of feature_sampler
+            cols = params['feature']  # Matches name of feature_sampler
             X_   = X[:, cols]
             
             # Define model
@@ -91,10 +94,11 @@ def main():
                       backend='loky',
                       seed=1718)
 
-    opt.search(objective=objective, 
-               sampler=sampler, 
-               lower_is_better=False)
-    
+    # Optimize parameters
+    best = opt.search(objective=objective, 
+                      sampler=sampler, 
+                      lower_is_better=False)
+    print(best)
     opt.serialize('psoptimizer_results.csv')
     opt.plot_history()
 

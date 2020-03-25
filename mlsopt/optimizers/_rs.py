@@ -1,15 +1,12 @@
 from joblib import delayed, Parallel
 import logging
-from math import exp
 import numpy as np
 import pandas as pd
 import time
 
 # Package imports
-from ..base.optimizers import BaseOptimizer
-from ..utils import parse_hyperopt_param, STATUS_FAIL, STATUS_OK
+from ..base import BaseOptimizer
 
-__all__ = ["RSOptimizer"]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -20,7 +17,7 @@ class RSOptimizer(BaseOptimizer):
     ----------
     """
     def __init__(self, 
-                 n_configs,
+                 n_configurations,
                  max_iterations,
                  subsample_factor=2,
                  dynamic_update=True,
@@ -28,7 +25,7 @@ class RSOptimizer(BaseOptimizer):
                  backend='loky',
                  verbose=0,
                  seed=None):
-        self.n_configs        = n_configs
+        self.n_configurations = n_configurations
         self.max_iterations   = max_iterations
         self.subsample_factor = subsample_factor
         self.dynamic_update   = dynamic_update
@@ -59,62 +56,6 @@ class RSOptimizer(BaseOptimizer):
         -------
         """
         pass
-
-    def _calculate_single_config(self,
-                                 objective,
-                                 config,
-                                 i,
-                                 iteration):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        if self.verbose and i % self.n_jobs == 0:
-            _LOGGER.info(f"evaluating config, {self.n_configs - i} " + 
-                         "remaining")
-        
-        # Evaluate configuration
-        results = objective(config)
-
-        # Check if failure occurred during objective func evaluation
-        if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
-            msg = "running config failed"
-            if 'message' in results.keys():
-                if results['message']: msg += f" because {results['message']}"
-            _LOGGER.warn(msg)
-            return {
-                'status'    : results['status'],
-                'metric'    : np.inf if self.lower_is_better else -np.inf,
-                'params'    : config,
-                'iteration' : iteration,
-                'id'        : i
-            }
-        
-        # Find best metric so far and compare results to see if current result is better
-        if self.lower_is_better:
-            if results['metric'] < self.best_results['metric']:
-                if self.verbose:
-                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                self.best_results['metric'] = results['metric']
-                self.best_results['params'] = config        
-        else:
-            if results['metric'] > self.best_results['metric']:
-                if self.verbose:
-                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                self.best_results['metric'] = results['metric']
-                self.best_results['params'] = config        
- 
-        return {
-            'status'    : results['status'],
-            'metric'    : results['metric'],
-            'params'    : config,
-            'iteration' : iteration,
-            'id'        : i
-            }
         
     def _evaluate(self, objective, configs, iteration):
         """ADD
@@ -127,7 +68,7 @@ class RSOptimizer(BaseOptimizer):
         """
         # Calculate metrics for configs
         results = Parallel(n_jobs=self.n_jobs, verbose=False, backend=self.backend)\
-                    (delayed(self._calculate_single_config)
+                    (delayed(self._evaluate_single_config)
                         (objective, config, i, iteration)
                             for i, config in enumerate(configs))
 
@@ -138,8 +79,6 @@ class RSOptimizer(BaseOptimizer):
 
         # Add to history
         self.history.append(results)
-
-        return results
 
     def _update_space(self, sampler, hof):
         """ADD
@@ -162,7 +101,6 @@ class RSOptimizer(BaseOptimizer):
             )
             sampler.update_space(data=df_space, name=sname)
 
-
     def search(self,
                objective, 
                sampler, 
@@ -177,11 +115,8 @@ class RSOptimizer(BaseOptimizer):
         """
         start = time.time()
         
-        # Get feature names if specified in sampler
-        self._colmapper = {}
-        for sname, sdist in sampler.samplers.items():
-            if sdist.__type__ == 'feature':
-                self._colmapper[sname] = sdist.feature_names
+        # Cache hp names
+        self._cache_hp_names(sampler)
   
         # Set attributes and best results
         self.lower_is_better        = lower_is_better
@@ -193,24 +128,21 @@ class RSOptimizer(BaseOptimizer):
 
         # Begin search
         for iteration in range(1, self.max_iterations + 1):
-            
+
             if self.verbose:
                 msg = "\n" + "*"*40 + f"\niteration {iteration}\n" + "*"*40
                 _LOGGER.info(msg)
 
-            # Grab hof configs for this round
-            hof = int(np.ceil(self.n_configs/self.subsample_factor))
-
             # Sample space
-            configs = sampler.sample_space(n_samples=self.n_configs)
+            configs = sampler.sample_space(n_samples=self.n_configurations)
 
             # Evaluate configs
-            results = self._evaluate(objective=objective,
-                                     configs=configs,
-                                     iteration=iteration)
+            self._evaluate(objective=objective, configs=configs, iteration=iteration)
 
             # Update search space now
             if self.dynamic_update:
+                # Grab hof configs for this round
+                hof = int(np.ceil(self.n_configurations/self.subsample_factor))
                 if self.verbose:
                     _LOGGER.info("updating search space")
                 self._update_space(sampler, hof)
@@ -220,4 +152,4 @@ class RSOptimizer(BaseOptimizer):
         if self.verbose:
             _LOGGER.info(f"finished searching in {minutes} minutes")
 
-        return self
+        return self._optimal_solution()

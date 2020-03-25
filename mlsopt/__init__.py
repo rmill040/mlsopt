@@ -4,6 +4,7 @@ import re
 # Package imports
 from ._version import get_versions
 
+
 logging.basicConfig(
     level=logging.INFO, 
     format="[%(asctime)s] %(levelname)s - %(message)s"
