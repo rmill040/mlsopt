@@ -128,7 +128,7 @@ class RSOptimizer(BaseOptimizer):
 
         # Begin search
         for iteration in range(1, self.max_iterations + 1):
-            
+
             if self.verbose:
                 msg = "\n" + "*"*40 + f"\niteration {iteration}\n" + "*"*40
                 _LOGGER.info(msg)
@@ -137,9 +137,7 @@ class RSOptimizer(BaseOptimizer):
             configs = sampler.sample_space(n_samples=self.n_configurations)
 
             # Evaluate configs
-            self._evaluate(objective=objective,
-                           configs=configs,
-                           iteration=iteration)
+            self._evaluate(objective=objective, configs=configs, iteration=iteration)
 
             # Update search space now
             if self.dynamic_update:
@@ -154,4 +152,4 @@ class RSOptimizer(BaseOptimizer):
         if self.verbose:
             _LOGGER.info(f"finished searching in {minutes} minutes")
 
-        return self
+        return self._optimal_solution()

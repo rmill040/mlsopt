@@ -5,7 +5,7 @@ import pandas as pd
 
 # Package imports
 from ..base import BaseSampler
-from ..constants import C_DISTRIBUTIONS, HP_TYPE
+from ..constants import C_DISTRIBUTIONS, HP_SAMPLER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class ClassifierSamplerMixin(BaseSampler):
         str
             Sampler type.
         """
-        return HP_TYPE
+        return HP_SAMPLER
 
     def sample_space(self):
         """Sample hyperparameter distributions.
@@ -118,8 +118,9 @@ class ClassifierSamplerMixin(BaseSampler):
         
         # Data must be a dataframe
         if not isinstance(data, pd.DataFrame):
-            _LOGGER.error(f"data of type = {type(data)}, must be pandas DataFrame")
-            raise ValueError
+            msg = f"data of type = {type(data)}, must be pandas DataFrame"
+            _LOGGER.error(msg)
+            raise ValueError(msg)
         
         # Update search distributions of hyperparameters
         for name in data.columns:

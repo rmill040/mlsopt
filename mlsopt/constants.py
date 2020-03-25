@@ -5,13 +5,13 @@ from typing import Union
 STATUS_FAIL = 'FAIL'
 STATUS_OK   = 'OK'
 
-# Types of classes
-HP_TYPE       = "hyperparameter"
-FEATURE_TYPE  = "feature"
-PIPELINE_TYPE = "pipeline"
+# Types of samplers
+HP_SAMPLER       = "hyperparameter"
+FEATURE_SAMPLER  = "feature"
+PIPELINE_SAMPLER = "pipeline"
 
-# Mypy numeric alias
-NUMERIC_TYPE = Union[int, float]
+# Typing aliases
+T_NUMERIC = Union[int, float]
 
 # Continuous distributions in ConfigSpace
 C_DISTRIBUTIONS = ['NormalFloatHyperparameter'
@@ -22,3 +22,11 @@ C_DISTRIBUTIONS = ['NormalFloatHyperparameter'
 # Discrete distributions in ConfigSpace
 D_DISTRIBUTIONS = ['CategoricalHyperparameter',
                    'OrdinalHyperparameter']
+
+# Integer distributions in ConfigSpace
+I_DISTRIBUTIONS = ['NormalIntegerHyperparameter',
+                   'UniformIntegerHyperparameter']
+
+# Float distributions in ConfigSpace
+F_DISTRIBUTIONS = ['NormalFloatHyperparameter',
+                   'UniformFloatHyperparameter']

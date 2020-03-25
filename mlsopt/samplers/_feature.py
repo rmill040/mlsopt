@@ -5,7 +5,7 @@ import numpy as np
 
 # Package imports
 from ..base import BaseSampler
-from ..constants import FEATURE_TYPE
+from ..constants import FEATURE_SAMPLER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,11 +52,9 @@ class BernoulliFeatureSampler(BaseSampler):
             self.feature_names = feature_names
         
         if not 0.0 <= muting_threshold < 1.0:
-            _LOGGER.error(
-                "muting_threshold should be in [0, 1), got " + 
-                f"{round(muting_threshold, 2)}"
-            )
-            raise ValueError
+            msg = f"muting_threshold should be in [0, 1), got {round(muting_threshold, 2)}"
+            _LOGGER.error(msg)
+            raise ValueError(msg)
     
         self.muting_threshold = muting_threshold
         self.support          = np.repeat(True, self.n_features)
@@ -111,7 +109,7 @@ class BernoulliFeatureSampler(BaseSampler):
         Returns
         -------
         """
-        return FEATURE_TYPE
+        return FEATURE_SAMPLER
 
     def _default_feature_names(self):
         """ADD

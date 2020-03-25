@@ -39,7 +39,7 @@ def main():
     #############################
 
     def objective(params): 
-        """Objective function to maximize using particle swarm optimization.
+        """Objective function to optimize using particle swarm optimization.
 
         Parameters
         ----------
@@ -53,7 +53,7 @@ def main():
         """
         try:
             # Subset features
-            cols = params['feature'] # Matches name of feature_sampler
+            cols = params['feature']  # Matches name of feature_sampler
             X_   = X[:, cols]
             
             # Define model
@@ -94,10 +94,11 @@ def main():
                       backend='loky',
                       seed=1718)
 
-    opt.search(objective=objective, 
-               sampler=sampler, 
-               lower_is_better=False)
-    
+    # Optimize parameters
+    best = opt.search(objective=objective, 
+                      sampler=sampler, 
+                      lower_is_better=False)
+    print(best)
     opt.serialize('psoptimizer_results.csv')
     opt.plot_history()
 

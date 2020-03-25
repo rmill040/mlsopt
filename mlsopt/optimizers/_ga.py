@@ -11,10 +11,18 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class GAOptimizer(BaseOptimizer):
-    """ADD HERE.
+    """Genetic algorithm optimizer.
 
     Parameters
     ----------
+    n_population : int, optional (default=20)
+        Size of population.
+        
+    n_generations : int, optional (default=10)
+        Number of generations.
+        
+    crossover_proba : float, optional (default=0.50)
+        ADD HERE.
     """
     def __init__(self, 
                  n_population=20,
@@ -56,7 +64,7 @@ class GAOptimizer(BaseOptimizer):
                          verbose=verbose,
                          seed=seed)   
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ADD
         
         Parameters
@@ -74,7 +82,7 @@ class GAOptimizer(BaseOptimizer):
                f"n_generations_patience={self.n_generations_patience},  " + \
                f"n_jobs={self.n_jobs}, backend={self.backend}, verbose={self.verbose})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """ADD
         
         Parameters
@@ -86,13 +94,23 @@ class GAOptimizer(BaseOptimizer):
         return self.__str__()
         
     def _fitness(self, population, objective, generation):
-        """ADD
+        """Fitness function to evaluate strength of population.
         
         Parameters
         ----------
+        population : add here
+            add here.
+            
+        objective : add here
+            add here.
+            
+        generation : add here
+            add here.
         
         Returns
         -------
+        list
+            ADD HERE.
         """
         # Calculate fitness for population
         population = Parallel(n_jobs=self.n_jobs, verbose=False, backend=self.backend)\
@@ -158,9 +176,9 @@ class GAOptimizer(BaseOptimizer):
                                  "since no change in hof metrics across " + 
                                  f"{self.n_generations_patience} generations")
                 return []
-            
-            # Update _prev_hof_metrics
-            self._prev_hof_metrics = deepcopy(hof_metrics)
+        
+        # Update _prev_hof_metrics
+        self._prev_hof_metrics = deepcopy(hof_metrics)
 
         # Run tournament selection
         metrics = np.array([pop['metric'] for pop in population])
@@ -297,7 +315,10 @@ class GAOptimizer(BaseOptimizer):
 
         return population
 
-    def search(self, objective, sampler, lower_is_better):
+    def search(self, 
+               objective, 
+               sampler, 
+               lower_is_better):
         """ADD
         
         Parameters
@@ -308,10 +329,8 @@ class GAOptimizer(BaseOptimizer):
         """
         tic = time.time()
         
-        # Cache hp names
-        self._cache_hp_names(sampler)
-        
-        # Set this as an attribute
+        # Cache hp names and set attribute
+        self._cache_hp_names(sampler)        
         self.lower_is_better = lower_is_better
         
         if self.verbose:
@@ -326,8 +345,8 @@ class GAOptimizer(BaseOptimizer):
                          "chromosomes")
         
         # Begin optimization
-        for generation in range(1, self.n_generations+1):
-
+        generation = 1
+        while generation <= self.n_generations:
             if self.verbose:
                 msg = "\n" + "*"*40 + f"\ngeneration {generation}\n" + "*"*40
                 _LOGGER.info(msg)
@@ -335,20 +354,24 @@ class GAOptimizer(BaseOptimizer):
             # Step 1. Evaluate fitness
             population = self._fitness(population, objective, generation)
         
-            # Step 2. Selection
+            # Step 2. Selection and check for convergence
             parents = self._selection(population, generation)
-            if not len(parents): return self  # Early stopping enabled
+            if not len(parents): 
+                break
 
             # Step 3. Crossover
             population = self._crossover(parents)
 
             # Step 4. Mutation
             population = self._mutation(population, sampler)
-        
+            
+            # Keep searching
+            generation += 1
+            
         # Finished
         toc     = time.time()
         minutes = round((toc - tic) / 60, 2)
         if self.verbose:
             _LOGGER.info(f"finished searching in {minutes} minutes")
 
-        return self
+        return self._optimal_solution()

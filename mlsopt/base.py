@@ -24,9 +24,10 @@ class BaseOptimizer(ABC):
     def __init__(self, backend, verbose, n_jobs, seed):
         # Define backend for parallel computation
         if backend not in ['loky', 'threading', 'multiprocessing']:
-            _LOGGER.error(f"backend {backend} not a valid argument, use " + 
-                          "loky, threading, or multiprocessing")
-            raise ValueError
+            msg = f"backend {backend} not a valid argument, use loky, threading, " + \
+                  "or multiprocessing"
+            _LOGGER.error(msg)
+            raise ValueError(msg)
         self.backend = backend
  
         # Calculate number of jobs for parallel processing
@@ -104,8 +105,9 @@ class BaseOptimizer(ABC):
             Key/value pairs containing results of evaluating configuration.
         """
         if self.verbose and i % self.n_jobs == 0:
-            _LOGGER.info(f"evaluating configurations, {self.n_configurations - i} " + 
-                         "remaining")
+            _LOGGER.info(
+                f"evaluating configurations, {self.n_configurations - i} remaining"
+                )
     
         # Evaluate configuration
         results = objective(configuration)
@@ -145,6 +147,29 @@ class BaseOptimizer(ABC):
             'params'    : configuration,
             'iteration' : iteration,
             'id'        : i
+            }
+
+    def _optimal_solution(self):
+        """ADD HERE
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
+        best_metric = np.inf if self.lower_is_better else -np.inf
+        best_params = None
+        for results in self.history:
+            for config in results:
+                improve = config['metric'] < best_metric if self.lower_is_better \
+                            else config['metric'] > best_metric
+                if improve:
+                    best_metric = config['metric']
+                    best_params = config['params']
+        return {
+            'metric' : best_metric, 
+            'params' : best_params
             }
 
     @abstractmethod

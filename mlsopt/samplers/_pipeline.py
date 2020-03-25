@@ -1,9 +1,10 @@
 import logging
 import pandas as pd
+from typing import Optional, Union
 
 # Package imports
 from ..base import BaseSampler
-from ..constants import PIPELINE_TYPE
+from ..constants import PIPELINE_SAMPLER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -14,13 +15,13 @@ class PipelineSampler(BaseSampler):
     Parameters
     ----------
     """
-    def __init__(self, seed=None):
+    def __init__(self, seed: Optional[int] = None) -> None:
         self._registered  = {}
         self._initialized = False
         
         super().__init__(dynamic_updating=True, seed=seed)
         
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of class.
         
         Parameters
@@ -35,7 +36,7 @@ class PipelineSampler(BaseSampler):
         return f"{self.__typename__}(dynamic_updating={self.dynamic_updating}, " + \
                f"seed={self.seed})"
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of class.
         
         Parameters
@@ -50,7 +51,7 @@ class PipelineSampler(BaseSampler):
         return self.__str__()
 
     @property
-    def __type__(self):
+    def __type__(self) -> str:
         """Type of sampler.
         
         Parameters
@@ -62,9 +63,9 @@ class PipelineSampler(BaseSampler):
         str
             Sampler type.
         """
-        return PIPELINE_TYPE
+        return PIPELINE_SAMPLER
 
-    def register_sampler(self, sampler, name=None):
+    def register_sampler(self, sampler, name=None) -> "PipelineSampler":
         """ADD
         
         Parameters
@@ -74,9 +75,9 @@ class PipelineSampler(BaseSampler):
         -------
         """
         if not hasattr(sampler, "_valid_sampler"):
-            _LOGGER.error(f"sampler <{name}> not recognized as a valid " + 
-                          "sampler")
-            raise ValueError
+            msg = f"sampler <{name}> not recognized as a valid sampler"
+            _LOGGER.error(msg)
+            raise ValueError(msg)
 
         if name is None:    
             _LOGGER.warn("sampler name not defined, registering sampler with " + 
@@ -96,18 +97,27 @@ class PipelineSampler(BaseSampler):
         self._initialized      = True
         return self
 
-    def sample_space(self, n_samples=1, return_combined=True):
-        """ADD
+    def sample_space(self, 
+                     n_samples: Optional[int] = 1, 
+                     return_combined: Optional[bool] = True):
+        """Return samples from registered samplers.
         
         Parameters
         ----------
+        n_samples : int, optional (default=1)
+            Number of samples to generate.
+            
+        return_combined : bool, optional (default=True)
+            Whether to return sampled spaces combined.
         
         Returns
         -------
+        ADD HERE.
         """
         if not self._initialized:
-            _LOGGER.exception("sampler not initialized, space undefined")
-            raise ValueError
+            msg = "sampler not initialized, space undefined"
+            _LOGGER.error(msg)
+            raise ValueError(msg)
         
         samples = []
         for _ in range(n_samples):
@@ -137,11 +147,12 @@ class PipelineSampler(BaseSampler):
         -------
         """
         if not self._initialized:
-            _LOGGER.error("sampler not initialized, space undefined")
-            raise ValueError
+            msg = "sampler not initialized, space undefined"
+            _LOGGER.error(msg)
+            raise ValueError(msg)
         try:
             self._registered[name].update_space(data)
         except Exception as e:
-            _LOGGER.exception("error trying to update space for sampler " + 
-                              f"<{name}> because {e}")
-            raise e
+            msg = f"error trying to update space for sampler <{name}> because {e}"
+            _LOGGER.exception(msg)
+            raise e(msg)
