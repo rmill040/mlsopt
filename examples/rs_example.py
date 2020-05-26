@@ -3,13 +3,14 @@ from sklearn.model_selection import cross_val_score
 from xgboost import XGBClassifier
 
 # Package imports
+from mlsopt import STATUS_FAIL, STATUS_OK
 from mlsopt.optimizers import RSOptimizer
 from mlsopt.samplers import (
     BernoulliFeatureSampler, PipelineSampler, XGBClassifierSampler
 )
-from mlsopt.utils import STATUS_FAIL, STATUS_OK
 
 SEED = 1718
+
 
 def main():
     """Optimize feature selection and hyperparameters for extreme gradient 

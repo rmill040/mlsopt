@@ -6,6 +6,7 @@ import time
 
 # Package imports
 from ..base import BaseOptimizer
+from ..constants import FEATURE_SAMPLER, HP_SAMPLER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +23,37 @@ class GAOptimizer(BaseOptimizer):
         Number of generations.
         
     crossover_proba : float, optional (default=0.50)
-        ADD HERE.
+        Probability of chromosome crossover.
+        
+    mutation_proba : float, optional (default=0.10)
+        Probability of chromosome mutation.
+        
+    crossover_independent_proba : float, optional (default=0.20)
+        Probability of gene crossover within a chromosome.
+        
+    mutation_independent_proba : float, optional (default=0.05)
+        Probability of gene mutation within a chromosome.
+        
+    tournament_size : int, optional (default=3)
+        Number of chromosomes to include for tournament selection.
+        
+    n_hof : int, optional (default=1)
+        Number of top performing chromosomes to keep in hall of fame.
+    
+    n_generations_patience : int or None, optional (default=None)
+        Number of generations to wait before early stopping optimization.
+    
+    n_jobs : int, optional (default=1)
+        Number of parallel jobs to run.
+        
+    backend : str, optional (default='loky')
+        Backend for parallel processing.
+        
+    verbose : bool, optional (default=False)
+        Controls verbosity of analysis.
+        
+    seed : int or None, optional (default=0)
+        Random seed.
     """
     def __init__(self, 
                  n_population=20,
@@ -36,7 +67,7 @@ class GAOptimizer(BaseOptimizer):
                  n_generations_patience=None,
                  n_jobs=1,
                  backend='loky',
-                 verbose=0,
+                 verbose=False,
                  seed=None
                  ):
         # TODO: ADD ERROR CHECKING (EX: POP SIZE, HOF SIZE, TOURNAMENT SIZE)
@@ -45,6 +76,7 @@ class GAOptimizer(BaseOptimizer):
         # Define attributes
         self.n_population                = n_population
         self.n_configurations            = n_population  # Used in base class
+        
         self.n_generations               = n_generations
         self.crossover_proba             = crossover_proba
         self.mutation_proba              = mutation_proba
@@ -56,43 +88,15 @@ class GAOptimizer(BaseOptimizer):
         self.n_jobs                      = n_jobs
         self.backend                     = backend
         self.verbose                     = verbose
+        
         self._prev_hof_metrics           = []
         self._wait                       = 0
 
         super().__init__(backend=backend,
                          n_jobs=n_jobs,
                          verbose=verbose,
-                         seed=seed)   
+                         seed=seed)
 
-    def __str__(self) -> str:
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        return f"GAOptimizer(n_population={self.n_population}, " + \
-               f"n_generations={self.n_generations}, crossover_proba=" + \
-               f"{self.crossover_proba}, mutation_proba={self.mutation_proba}, " + \
-               f"crossover_independent_proba={self.crossover_independent_proba}, " + \
-               f"mutation_independent_proba={self.mutation_independent_proba}, " + \
-               f"tournament_size={self.tournament_size}, n_hof={self.n_hof}, " + \
-               f"n_generations_patience={self.n_generations_patience},  " + \
-               f"n_jobs={self.n_jobs}, backend={self.backend}, verbose={self.verbose})"
-
-    def __repr__(self) -> str:
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        return self.__str__()
-        
     def _fitness(self, population, objective, generation):
         """Fitness function to evaluate strength of population.
         
@@ -235,7 +239,6 @@ class GAOptimizer(BaseOptimizer):
             if self.rng.uniform() < self.crossover_proba:
                 # sname := sampler name
                 for sname in parent1.keys():
-                    
                     # Crossover hyperparameter space
                     if isinstance(parent1[sname], dict):
                         # pname := parameter name
@@ -252,7 +255,6 @@ class GAOptimizer(BaseOptimizer):
                                 # Cast data types if needed
                                 if not isinstance(cv1, dtype):
                                     cv1 = dtype(cv1)
-                                
                                 if not isinstance(cv2, dtype):
                                     cv2 = dtype(cv2)                                
 
@@ -262,9 +264,7 @@ class GAOptimizer(BaseOptimizer):
                     # Crossover feature space
                     elif isinstance(parent1[sname], np.ndarray):
                         n_attr = len(parent1[sname])
-                        for i, pv1, pv2 in zip(range(n_attr),
-                                               parent1[sname],
-                                               parent2[sname]):
+                        for i, pv1, pv2 in zip(range(n_attr), parent1[sname], parent2[sname]):
                             # Update child values by swapping parent values
                             if self.rng.uniform() < self.crossover_independent_proba:
                                 child1[sname][i] = pv2
@@ -293,11 +293,9 @@ class GAOptimizer(BaseOptimizer):
             if self.rng.uniform() < self.mutation_proba:
                 # sname := sampler name
                 for sname in population[idx].keys():
-                    
-                    space = sampler.samplers[sname].space
-                    
                     # Mutate hyperparameter space
-                    if isinstance(population[idx][sname], dict):
+                    if sampler._registered[sname].__type__ == HP_SAMPLER:
+                        space = sampler._registered[sname].space    
                         # pname := parameter name
                         for pname in population[idx][sname].keys():
                             if self.rng.uniform() < self.mutation_independent_proba:
@@ -305,7 +303,7 @@ class GAOptimizer(BaseOptimizer):
                                     space.get_hyperparameter(pname).sample(space.random)
                         
                     # Mutate feature space
-                    elif isinstance(population[idx][sname], np.ndarray):
+                    elif sampler._registered[sname].__type__ == FEATURE_SAMPLER:
                         n_attr = len(population[idx][sname])
                         change = np.where(
                             self.rng.uniform(size=n_attr) < self.mutation_independent_proba
@@ -329,17 +327,11 @@ class GAOptimizer(BaseOptimizer):
         """
         tic = time.time()
         
-        # Cache hp names and set attribute
-        self._cache_hp_names(sampler)        
-        self.lower_is_better = lower_is_better
+        # Initialize parameters
+        self._initialize(sampler=sampler, lower_is_better=lower_is_better)
         
-        if self.verbose:
-            _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
-                         f"jobs using {self.backend} backend")
-
-        # Initialize population and set best results
-        population                  = sampler.sample_space(n_samples=self.n_population)
-        self.best_results['metric'] = np.inf if lower_is_better else -np.inf
+        # Initialize population
+        population = sampler.sample_space(n_samples=self.n_population)
         if self.verbose:
             _LOGGER.info(f"initialized population with {self.n_population} " + 
                          "chromosomes")

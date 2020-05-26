@@ -3,11 +3,11 @@ from sklearn.model_selection import cross_val_score
 from xgboost import XGBClassifier
 
 # Package imports
+from mlsopt import STATUS_FAIL, STATUS_OK
 from mlsopt.optimizers import PSOptimizer
 from mlsopt.samplers import (
     BernoulliFeatureSampler, PipelineSampler, XGBClassifierSampler
 )
-from mlsopt.constants import STATUS_FAIL, STATUS_OK
 
 SEED = 1718
 
@@ -95,10 +95,11 @@ def main():
                       seed=1718)
 
     # Optimize parameters
-    best = opt.search(objective=objective, 
-                      sampler=sampler, 
-                      lower_is_better=False)
-    print(best)
+    metric, params = opt.search(objective=objective, 
+                                sampler=sampler, 
+                                lower_is_better=False)
+    print(f"\nbest metric = {metric}")
+    print(f"\nbest params = {params}")
     opt.serialize('psoptimizer_results.csv')
     opt.plot_history()
 

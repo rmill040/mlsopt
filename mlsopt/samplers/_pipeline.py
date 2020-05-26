@@ -1,12 +1,13 @@
 import logging
 import pandas as pd
-from typing import Optional, Union
+from typing import Optional, TypeVar
 
 # Package imports
 from ..base import BaseSampler
 from ..constants import PIPELINE_SAMPLER
 
 _LOGGER = logging.getLogger(__name__)
+T       = TypeVar('T', bound='PipelineSampler')
 
 
 class PipelineSampler(BaseSampler):
@@ -14,41 +15,16 @@ class PipelineSampler(BaseSampler):
     
     Parameters
     ----------
+    
+    Attributes
+    ----------
     """
-    def __init__(self, seed: Optional[int] = None) -> None:
+    def __init__(self, 
+                 seed: Optional[int] = None) -> None:
         self._registered  = {}
         self._initialized = False
         
         super().__init__(dynamic_updating=True, seed=seed)
-        
-    def __str__(self) -> str:
-        """String representation of class.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        str
-            Class string.
-        """
-        return f"{self.__typename__}(dynamic_updating={self.dynamic_updating}, " + \
-               f"seed={self.seed})"
-    
-    def __repr__(self) -> str:
-        """String representation of class.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        str
-            Class string.
-        """
-        return self.__str__()
 
     @property
     def __type__(self) -> str:
@@ -65,7 +41,7 @@ class PipelineSampler(BaseSampler):
         """
         return PIPELINE_SAMPLER
 
-    def register_sampler(self, sampler, name=None) -> "PipelineSampler":
+    def register_sampler(self, sampler, name=None) -> T:
         """ADD
         
         Parameters
@@ -79,14 +55,14 @@ class PipelineSampler(BaseSampler):
             _LOGGER.error(msg)
             raise ValueError(msg)
 
-        if name is None:    
-            _LOGGER.warn("sampler name not defined, registering sampler with " + 
-                         f"name <{sampler.__typename__}>")
+        if name is None:  
+            _LOGGER.warning("sampler name not defined, registering sampler with " + 
+                            f"name <{sampler.__typename__}>")
             name = sampler.__typename__
 
         # Check if name already exists in registered samplers
         if name in self._registered:
-            _LOGGER.warn(f"sampler <{name}> already registered as a " + 
+            _LOGGER.warning(f"sampler <{name}> already registered as a " + 
                          f"<{self._registered[name].__type__}> sampler, " + 
                          f"replacing sampler with new <{sampler.__type__}> " + 
                          "sampler")
@@ -137,7 +113,7 @@ class PipelineSampler(BaseSampler):
             split_samples[name] = pd.DataFrame.from_records(samples[name])
         return split_samples
 
-    def update_space(self, data, name):
+    def update_space(self, data, name) -> T:
         """ADD
         
         Parameters
@@ -156,3 +132,5 @@ class PipelineSampler(BaseSampler):
             msg = f"error trying to update space for sampler <{name}> because {e}"
             _LOGGER.exception(msg)
             raise e(msg)
+        
+        return self

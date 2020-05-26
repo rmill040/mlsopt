@@ -1,155 +1,14 @@
 from ConfigSpace import ConfigurationSpace
 import ConfigSpace.hyperparameters as CSH
 import logging
-import pandas as pd
 
 # Package imports
-from ..base import BaseSampler
-from ..constants import C_DISTRIBUTIONS, HP_SAMPLER
+from ..base import HPSamplerMixin
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ClassifierSamplerMixin(BaseSampler):
-    """Classifier sampler mixin.
-    
-    Parameters
-    ----------
-    distribution : list or None, optional (default=None)
-        Hyperparameter distributions.
-    
-    dynamic_updating : bool, optional (default=False)
-        Whether to allow space updating.
-        
-    early_stopping : bool, optional (default=False)
-        Whether space is updated using early_stopping. If True, then the 
-        hyperparemeter `n_estimators` is not updated.
-    
-    seed : int, optional (default=None)
-        Random seed for sampler.
-    """
-    def __init__(self, 
-                 distributions=None,
-                 dynamic_updating=False, 
-                 early_stopping=False,
-                 seed=None):
-        self.distributions  = distributions 
-        self.early_stopping = early_stopping
-    
-        super().__init__(dynamic_updating=dynamic_updating, seed=seed)
-        
-        # Initialize distributions
-        self._init_distributions()
-
-    def __str__(self):
-        """String representation of class.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        str
-            Class string.
-        """
-        names = self.space.get_hyperparameter_names()
-        return f"{self.__typename__}(space={names}, " + \
-               f"dynamic_updating={self.dynamic_updating}, " + \
-               f"early_stopping={self.early_stopping}, seed={self.seed})"
-
-    def __repr__(self):
-        """String representation of class.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        str
-            Class string.
-        """
-        return self.__str__()
-
-    @property
-    def __type__(self):
-        """Type of sampler.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        str
-            Sampler type.
-        """
-        return HP_SAMPLER
-
-    def sample_space(self):
-        """Sample hyperparameter distributions.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        dict
-            Key/value pairs where the key is the hyperparameter name and the 
-            value is the hyperparameter value.
-        """
-        return self.space.sample_configuration().get_dictionary()
-
-    def update_space(self, data=None):
-        """Update hyperparameter distributions.
-        
-        Parameters
-        ----------
-        data : pandas DataFrame
-            Historical hyperparameter configurations used to update distributions.
-        
-        Returns
-        -------
-        None
-        """
-        if not self.dynamic_updating: return
-        
-        # Data must be a dataframe
-        if not isinstance(data, pd.DataFrame):
-            msg = f"data of type = {type(data)}, must be pandas DataFrame"
-            _LOGGER.error(msg)
-            raise ValueError(msg)
-        
-        # Update search distributions of hyperparameters
-        for name in data.columns:
-            
-            # Do not update n_estimators distribution if early stopping enabled
-            if name == 'n_estimators' and self.early_stopping: continue
-            
-            # Get information on hyperparameter distribution
-            hp        = self.space.get_hyperparameter(name)
-            dist_type = type(hp).__name__
-            
-            # Numerical distribution
-            if dist_type in C_DISTRIBUTIONS:
-                min_value, max_value = data[name].min(), data[name].max()
-                hp.lower             = min_value
-                hp.upper             = max_value
-                hp.default_value     = min_value
-                hp.meta.update({"updated": True})
-
-            # Categorical distribution
-            if dist_type == 'CategoricalHyperparameter':
-                pass
-                
-            # Ordinal distribution
-            if dist_type == 'OrdinalHyperparameter':
-                pass
-
-
-class XGBClassifierSampler(ClassifierSamplerMixin):
+class XGBClassifierSampler(HPSamplerMixin):
     """Extreme gradient boosted tree classifier sampler.
     """
     def _init_distributions(self):
@@ -273,7 +132,7 @@ class XGBClassifierSampler(ClassifierSamplerMixin):
         self.space.add_hyperparameters(self.distributions) 
 
 
-class LGBMClassifierSampler(ClassifierSamplerMixin):
+class LGBMClassifierSampler(HPSamplerMixin):
     """Light gradient boosting tree classifier sampler.
     """
     def _init_distributions(self):
@@ -288,7 +147,7 @@ class LGBMClassifierSampler(ClassifierSamplerMixin):
         raise NotImplementedError("in progress")
 
 
-class SGBMClassifierSampler(BaseSampler):
+class SGBMClassifierSampler(HPSamplerMixin):
     """Scikit-learn gradient boosting tree classifier sampler.
     """
     def _init_distributions(self):

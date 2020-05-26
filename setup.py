@@ -11,10 +11,12 @@ def list_reqs(fname="requirements.txt"):
     """
     return open(fname).read().splitlines()
 
+
 def read_file(fname="README.md"):
     """Get contents of file from the module's directory.
     """
     return open(join(dirname(__file__), fname), encoding='utf-8').read()
+
 
 class BuildExt(build_ext):
     """build_ext command for use when numpy headers are needed.
@@ -25,6 +27,7 @@ class BuildExt(build_ext):
         build_ext.finalize_options(self)
         import numpy
         self.include_dirs.append(numpy.get_include())
+
 
 # Package meta-data
 MODULE_NAME          = "mlsopt"
@@ -41,7 +44,7 @@ SETUP_REQS           = ["numpy", "cython"]
 INSTALL_REQS         = list_reqs()
 PACKAGES             = find_packages(exclude=['tests'])
 CMDCLASS             = {"build_ext": BuildExt}
-MIN_PYTHON_VERSION   = ">=3.5.*"
+MIN_PYTHON_VERSION   = ">=3.6.*"
 VERSION              = versioneer.get_version()
 PACKAGE_DATA         = {}
 # setup(
@@ -56,9 +59,7 @@ EXTRAS_REQUIRE       = {}
 SCRIPTS              = []
 LICENSE              = "MIT"
 ZIP_SAFE             = False
-CLASSIFIERS          = ['Programming Language :: Python :: 3.5'
-                        'Programming Language :: Python :: 3.6',
-                        'Programming Language :: Python :: 3.7',
+CLASSIFIERS          = ['Programming Language :: Python :: 3',
                         'Development Status :: 3 - Alpha',
                         'Natural Language :: English',
                         'Intended Audience :: Developers',

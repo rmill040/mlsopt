@@ -20,7 +20,7 @@ class RSOptimizer(BaseOptimizer):
                  n_configurations,
                  max_iterations,
                  subsample_factor=2,
-                 dynamic_update=True,
+                 dynamic_updating=True,
                  n_jobs=1,
                  backend='loky',
                  verbose=0,
@@ -28,34 +28,12 @@ class RSOptimizer(BaseOptimizer):
         self.n_configurations = n_configurations
         self.max_iterations   = max_iterations
         self.subsample_factor = subsample_factor
-        self.dynamic_update   = dynamic_update
+        self.dynamic_updating = dynamic_updating
 
         super().__init__(backend=backend,
                          n_jobs=n_jobs,
                          verbose=verbose,
                          seed=seed)
-    
-    def __str__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        pass
-
-    def __repr__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        pass
         
     def _evaluate(self, objective, configs, iteration):
         """ADD
@@ -89,7 +67,7 @@ class RSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        if not self.dynamic_update: return
+        if not self.dynamic_updating: return
         # Sort by best metrics
         df = pd.DataFrame(self.history[-1])\
                .sort_values(by='metric', ascending=self.lower_is_better)[:hof]
@@ -115,16 +93,8 @@ class RSOptimizer(BaseOptimizer):
         """
         start = time.time()
         
-        # Cache hp names
-        self._cache_hp_names(sampler)
-  
-        # Set attributes and best results
-        self.lower_is_better        = lower_is_better
-        self.best_results['metric'] = np.inf if lower_is_better else -np.inf
-        
-        if self.verbose:
-            _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
-                         f"jobs using {self.backend} backend")
+        # Initialize parameters
+        self._initialize(sampler=sampler, lower_is_better=lower_is_better)
 
         # Begin search
         for iteration in range(1, self.max_iterations + 1):
@@ -140,7 +110,7 @@ class RSOptimizer(BaseOptimizer):
             self._evaluate(objective=objective, configs=configs, iteration=iteration)
 
             # Update search space now
-            if self.dynamic_update:
+            if self.dynamic_updating:
                 # Grab hof configs for this round
                 hof = int(np.ceil(self.n_configurations/self.subsample_factor))
                 if self.verbose:

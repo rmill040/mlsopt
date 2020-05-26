@@ -7,21 +7,42 @@ import numpy as np
 from numpy.random import RandomState
 import pandas as pd
 import seaborn as sns
+from sklearn.base import BaseEstimator
+from typing import Union
 
 # Package imports
-from .constants import STATUS_FAIL, STATUS_OK
+from .constants import C_DISTRIBUTIONS, HP_SAMPLER, STATUS_FAIL, STATUS_OK
 
 matplotlib.style.use("ggplot")
 
-__all__ = ["BaseOptimizer", "BaseSampler"]
+__all__ = ["BaseOptimizer", "BaseSampler", "HPSamplerMixin"]
 _LOGGER = logging.getLogger(__name__)
 
+# TODO: Add checks to ensure optimizer has a solution and results to save to disk
 
-class BaseOptimizer(ABC):
+class BaseOptimizer(BaseEstimator, ABC):
     """Base optimizer class.
+    
+    Parameters
+    ----------
+    backend : str, optional (default='loky')
+        ADD HERE.
+        
+    verbose : bool, optional (default=False)
+        ADD HERE.
+        
+    n_jobs : int, optional (default=1)
+        ADD HERE.
+        
+    seed : int or None, optional (default=None)
+        ADD HERE.
     """
     @abstractmethod
-    def __init__(self, backend, verbose, n_jobs, seed):
+    def __init__(self, 
+                 backend: str = 'loky', 
+                 verbose: bool = False, 
+                 n_jobs: int = 1, 
+                 seed: Union[int] = None) -> None:
         # Define backend for parallel computation
         if backend not in ['loky', 'threading', 'multiprocessing']:
             msg = f"backend {backend} not a valid argument, use loky, threading, " + \
@@ -51,32 +72,41 @@ class BaseOptimizer(ABC):
         self.best_results['metric'] = None
         self.best_results['params'] = None
 
-    @abstractmethod
-    def __str__(self):
-        pass
-
-    @abstractmethod
-    def __repr__(self):
-        pass
-
     @property
     def __typename__(self):
-        return type(self).__name__
+        return self.__class__.__name__
     
-    def _cache_hp_names(self, sampler):
-        """ADD HERE
+    def _initialize(self, 
+                    sampler, 
+                    lower_is_better: bool):
+        """Initialize data structures and parameters for optimizers.
         
         Parameters
         ----------
+        sampler : ADD HERE.
+            add here
+            
+        lower_is_better : bool
+            Whether a lower metric is better.
         
         Returns
         -------
+        None
         """
+        # Cache parameter names
         for sname, sdist in sampler._registered.items():
             if sdist.__type__ == 'feature':
                 self._hp_names[sname] = sdist.feature_names
             else:
                 self._hp_names[sname] = np.array(sdist.space.get_hyperparameter_names())
+
+        # Set attribute and initialize metric
+        self.lower_is_better        = lower_is_better
+        self.best_results['metric'] = np.inf if lower_is_better else -np.inf
+
+        if self.verbose:
+            _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
+                         f"jobs using {self.backend} backend")
     
     def _evaluate_single_config(self, 
                                 objective, 
@@ -113,33 +143,27 @@ class BaseOptimizer(ABC):
         results = objective(configuration)
 
         # Check if failure occurred during objective func evaluation
-        if STATUS_FAIL in results['status'].upper() or \
-           STATUS_OK not in results['status'].upper():
+        if STATUS_FAIL in results['status'].upper() or STATUS_OK not in results['status'].upper():
             msg = "running configuration failed"
             if 'message' in results.keys():
-                if results['message']: msg += f" because {results['message']}"
-            _LOGGER.warn(msg)
-            return {
-                'status'    : results['status'],
-                'metric'    : np.inf if self.lower_is_better else -np.inf,
-                'params'    : configuration,
-                'iteration' : iteration,
-                'id'        : i
-            }
-        
-        # Find best metric so far and compare results to see if current result is better
-        if self.lower_is_better:
-            if results['metric'] < self.best_results['metric']:
-                if self.verbose:
-                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                self.best_results['metric'] = results['metric']
-                self.best_results['params'] = configuration        
+                if results['message']: 
+                    msg += f" because {results['message']}"
+            _LOGGER.warning(msg)            
+            results['metric'] = np.inf if self.lower_is_better else -np.inf
         else:
-            if results['metric'] > self.best_results['metric']:
-                if self.verbose:
-                    _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                self.best_results['metric'] = results['metric']
-                self.best_results['params'] = configuration        
+            # Find best metric so far and compare results to see if current result is better
+            if self.lower_is_better:
+                if results['metric'] < self.best_results['metric']:
+                    if self.verbose:
+                        _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                    self.best_results['metric'] = results['metric']
+                    self.best_results['params'] = configuration        
+            else:
+                if results['metric'] > self.best_results['metric']:
+                    if self.verbose:
+                        _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
+                    self.best_results['metric'] = results['metric']
+                    self.best_results['params'] = configuration        
  
         return {
             'status'    : results['status'],
@@ -150,13 +174,19 @@ class BaseOptimizer(ABC):
             }
 
     def _optimal_solution(self):
-        """ADD HERE
+        """Get optimal metric and solution.
         
         Parameters
         ----------
+        None
         
         Returns
         -------
+        best_metric : float
+            ADD HERE.
+            
+        best_params : dict
+            ADD HERE.
         """
         best_metric = np.inf if self.lower_is_better else -np.inf
         best_params = None
@@ -167,10 +197,8 @@ class BaseOptimizer(ABC):
                 if improve:
                     best_metric = config['metric']
                     best_params = config['params']
-        return {
-            'metric' : best_metric, 
-            'params' : best_params
-            }
+        
+        return best_metric, best_params
 
     @abstractmethod
     def search(self):
@@ -212,17 +240,16 @@ class BaseOptimizer(ABC):
         return df
 
     def serialize(self, save_name):
-        """ADD
-
-        TODO: What happens in the case with different sampler names and the 
-              same parameter names (e.g., 2 xgboost samplers with same parameters 
-              being sampled) --> handle this.
+        """Save search results to .csv file.
         
         Parameters
         ----------
+        save_name : str
+            Name of file.
         
         Returns
         -------
+        None
         """
         if not save_name.endswith(".csv"): save_name += ".csv"
         
@@ -258,22 +285,24 @@ class BaseOptimizer(ABC):
         plt.show()
         
 
-class BaseSampler(ABC):
+class BaseSampler(BaseEstimator, ABC):
     """Base sampler class.
+    
+    Parameters
+    ----------
+    dynamic_updating : bool, optional (default=False)
+        ADD HERE.
+        
+    seed : int or None, optional (default=None)
+        ADD HERE.
     """
     @abstractmethod
-    def __init__(self, dynamic_updating, seed=None):
+    def __init__(self, 
+                 dynamic_updating: bool = False, 
+                 seed: Union[int] = None):
         self.dynamic_updating = dynamic_updating
         self._seed            = 0 if seed is None else seed
         self._valid_sampler   = True
-
-    @abstractmethod
-    def __str__(self):
-        pass
-
-    @abstractmethod
-    def __repr__(self):
-        pass
 
     @abstractmethod
     def __type__(self):
@@ -322,3 +351,112 @@ class BaseSampler(ABC):
     @abstractmethod
     def update_space(self):
         pass
+    
+
+class HPSamplerMixin(BaseSampler):
+    """Hyperparameter sampler mixin.
+    
+    Parameters
+    ----------
+    distributions : list or None, optional (default=None)
+        Hyperparameter distributions.
+    
+    dynamic_updating : bool, optional (default=False)
+        Whether to allow space updating.
+        
+    early_stopping : bool, optional (default=False)
+        Whether space is updated using early_stopping. If True, then the 
+        hyperparemeter `n_estimators` is not updated.
+    
+    seed : int or None, optional (default=None)
+        Random seed for sampler.
+    """
+    def __init__(self, 
+                 distributions=None,
+                 dynamic_updating=False, 
+                 early_stopping=False,
+                 seed=None):
+        self.distributions  = distributions 
+        self.early_stopping = early_stopping
+    
+        super().__init__(dynamic_updating=dynamic_updating, seed=seed)
+        
+        # Initialize distributions
+        self._init_distributions()
+
+    @property
+    def __type__(self):
+        """Type of sampler.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        str
+            Sampler type.
+        """
+        return HP_SAMPLER
+
+    def sample_space(self):
+        """Sample hyperparameter distributions.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        dict
+            Key/value pairs where the key is the hyperparameter name and the 
+            value is the hyperparameter value.
+        """
+        return self.space.sample_configuration().get_dictionary()
+
+    def update_space(self, data=None):
+        """Update hyperparameter distributions.
+        
+        Parameters
+        ----------
+        data : pandas DataFrame
+            Historical hyperparameter configurations used to update distributions.
+        
+        Returns
+        -------
+        None
+        """
+        if not self.dynamic_updating: return
+        
+        # Data must be a dataframe
+        if not isinstance(data, pd.DataFrame):
+            msg = f"data of type = {type(data)}, must be pandas DataFrame"
+            _LOGGER.error(msg)
+            raise ValueError(msg)
+        
+        # Update search distributions of hyperparameters
+        for name in data.columns:
+            
+            # Do not update n_estimators distribution if early stopping enabled
+            if name == 'n_estimators' and self.early_stopping: continue
+            
+            # Get information on hyperparameter distribution
+            hp        = self.space.get_hyperparameter(name)
+            dist_type = hp.__class__.__name__
+            
+            # Numerical distribution
+            if dist_type in C_DISTRIBUTIONS:
+                min_value        = data[name].min()
+                max_value        = data[name].max()
+                hp.lower         = min_value
+                hp.upper         = max_value
+                hp.default_value = min_value
+                hp.meta.update({"updated": True})
+
+            # Categorical distribution
+            if dist_type == 'CategoricalHyperparameter':
+                pass
+                
+            # Ordinal distribution
+            if dist_type == 'OrdinalHyperparameter':
+                pass

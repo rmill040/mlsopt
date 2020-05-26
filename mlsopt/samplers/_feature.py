@@ -2,6 +2,7 @@ from ConfigSpace import ConfigurationSpace
 import ConfigSpace.hyperparameters as CSH
 import logging
 import numpy as np
+from typing import Union
 
 # Package imports
 from ..base import BaseSampler
@@ -38,18 +39,17 @@ class BernoulliFeatureSampler(BaseSampler):
                  n_features, 
                  selection_proba=None,
                  feature_names=None,
-                 muting_threshold=0.0,
-                 dynamic_updating=False,
-                 seed=None):
+                 muting_threshold: float = 0.0,
+                 dynamic_updating: bool = False,
+                 seed: Union[int] = None):
         self.n_features = n_features
-
         if selection_proba is None or len(selection_proba) != self.n_features:
             self.selection_proba = np.repeat(0.5, self.n_features)
         
-        if feature_names is None or len(feature_names) != self.n_features:
-            self._default_feature_names()
-        else:
+        if feature_names is not None and len(feature_names) == self.n_features:
             self.feature_names = feature_names
+        else:
+            self._default_feature_names()
         
         if not 0.0 <= muting_threshold < 1.0:
             msg = f"muting_threshold should be in [0, 1), got {round(muting_threshold, 2)}"
@@ -63,41 +63,6 @@ class BernoulliFeatureSampler(BaseSampler):
         
         # Initialize distributions
         self._init_distributions()
-        
-    def __str__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        if self.n_features < 4:
-            str_sp  = "[" + ",".join(self.selection_proba.astype(str).tolist()) + "]"
-            str_fn  = "[" + ",".join(self.feature_names.astype(str).tolist()) + "]"
-        else:
-            str_sp  = "[" + ",".join(self.selection_proba.astype(str).tolist()[:1])
-            str_sp += ",...," + str(self.selection_proba[-1]) + "]"
-        
-            str_fn  = "[" + ",".join(self.feature_names.astype(str).tolist()[:1])
-            str_fn += ",...," + str(self.feature_names[-1]) + "]"
-    
-        return f"FeatureSampler(n_features={self.n_features}, " + \
-               f"selection_proba={str_sp}, feature_names={str_fn}, " + \
-               f"muting_threshold={self.muting_threshold}, " + \
-               f"dynamic_updating={self.dynamic_updating}, seed={self.seed})"
-
-    def __repr__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        return self.__str__()
 
     @property
     def __type__(self):
@@ -166,7 +131,7 @@ class BernoulliFeatureSampler(BaseSampler):
             for i, name in enumerate(self.feature_names):
                 values[i] = sample[name]
         else:
-            values = self.space.sample_configuration().get_array().astype(bool)
+            values = space.get_array().astype(bool)
 
         return values
     
@@ -175,10 +140,12 @@ class BernoulliFeatureSampler(BaseSampler):
         
         Parameters
         ----------
-        data : 
+        data : 2d array-like
+            Historical configurations generated from sampler.
         
         Returns
         -------
+        None
         """
         if not self.dynamic_updating: return
                     
@@ -189,11 +156,10 @@ class BernoulliFeatureSampler(BaseSampler):
         if self.muting_threshold > 0:
             new_support = self.selection_proba >= self.muting_threshold
             if True not in new_support:
-                _LOGGER.warn(
-                    f"no features above muting threshold={self.muting_threshold} " + 
-                    f"keeping previous feature set with {self.support.sum()} " + 
-                    "features and ignoring update"
-                )
+                msg = f"no features above muting threshold={self.muting_threshold} " + \
+                      f"keeping previous feature set with {self.support.sum()} " + \
+                      "features and ignoring update"
+                _LOGGER.warning(msg)
             else:
                 self.support = new_support
                 _LOGGER.info(

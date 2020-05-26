@@ -30,3 +30,6 @@ I_DISTRIBUTIONS = ['NormalIntegerHyperparameter',
 # Float distributions in ConfigSpace
 F_DISTRIBUTIONS = ['NormalFloatHyperparameter',
                    'UniformFloatHyperparameter']
+
+# All distributions in ConfigSpace
+DISTRIBUTIONS = C_DISTRIBUTIONS + D_DISTRIBUTIONS

@@ -54,28 +54,6 @@ class PSOptimizer(BaseOptimizer):
                          n_jobs=n_jobs,
                          verbose=verbose,
                          seed=seed)   
-    
-    def __str__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        pass
-
-    def __repr__(self):
-        """ADD
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        pass
 
     def _evaluate(self, 
                   objective, 
@@ -157,7 +135,7 @@ class PSOptimizer(BaseOptimizer):
                 ub     = []
                 for hp in sdist.space.get_hyperparameters():
                     # Define data types
-                    dist = type(hp).__name__
+                    dist = hp.__class__.__name__
                     if dist in I_DISTRIBUTIONS:
                         dtypes[hp.name] = int
                     elif dist in F_DISTRIBUTIONS:
@@ -306,17 +284,6 @@ class PSOptimizer(BaseOptimizer):
 
         return converged
 
-    def _create_swarm_best(self):
-        """ADD HERE
-        
-        Parameters
-        ----------
-        
-        Returns
-        -------
-        """
-        pass
-
     def search(self, 
                objective, 
                sampler, 
@@ -331,16 +298,10 @@ class PSOptimizer(BaseOptimizer):
         """
         tic = time.time()
         
-        # Initialize parameters for optimization
-        self._cache_hp_names(sampler)
-        self.lower_is_better        = lower_is_better
-        self.best_results['metric'] = np.inf if lower_is_better else -np.inf
+        # Initialize parameters
+        self._initialize(sampler=sampler, lower_is_better=lower_is_better)
 
-        if self.verbose:
-            _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
-                         f"jobs using {self.backend} backend")
-
-        # Initialize swarm and evaluate first iteration
+        # Initialize swarm
         if self.verbose: 
             _LOGGER.info("initializing swarm")
         self._initialize_swarm(objective, sampler)
@@ -355,7 +316,7 @@ class PSOptimizer(BaseOptimizer):
             # 1. Evaluate particles
             obj = self._evaluate(objective=objective, iteration=iteration)
             
-            # 2. Update particles' and swarm's best results
+            # 2. Update best results
             converged = self._update_best_results(obj)
             
             # If converged, early stopping
@@ -366,7 +327,7 @@ class PSOptimizer(BaseOptimizer):
                                  "criteria below tolerance")
                 break
 
-            # 3. Update particles            
+            # 3. Update particles         
             self._update_particles(iteration=iteration)
             
             # Keep searching

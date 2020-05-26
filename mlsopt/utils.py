@@ -5,6 +5,21 @@ from typing import Union
 from .constants import T_NUMERIC
 
 
+def validate_param(value, 
+                   dtype, 
+                   range=None, 
+                   options=None):
+    """ADD HERE
+    
+    Parameters
+    ----------
+    
+    Returns
+    -------
+    """
+    pass
+
+
 def pandas_safe_iloc(df, iloc):
     """ADD HERE
     

@@ -3,11 +3,11 @@ from sklearn.model_selection import cross_val_score
 from xgboost import XGBClassifier
 
 # Package imports
+from mlsopt import STATUS_FAIL, STATUS_OK
 from mlsopt.optimizers import GAOptimizer
 from mlsopt.samplers import (
     BernoulliFeatureSampler, PipelineSampler, XGBClassifierSampler
 )
-from mlsopt.constants import STATUS_FAIL, STATUS_OK
 
 SEED = 1718
 
@@ -95,7 +95,6 @@ def main():
                       n_jobs=-1,
                       backend='loky',
                       seed=1718)
-
     opt.search(objective=objective, 
                sampler=sampler, 
                lower_is_better=False)
