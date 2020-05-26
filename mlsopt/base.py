@@ -8,17 +8,20 @@ from numpy.random import RandomState
 import pandas as pd
 import seaborn as sns
 from sklearn.base import BaseEstimator
-from typing import Union
+from typing import Any, Callable, Dict, Union
 
 # Package imports
 from .constants import C_DISTRIBUTIONS, HP_SAMPLER, STATUS_FAIL, STATUS_OK
 
 matplotlib.style.use("ggplot")
 
-__all__ = ["BaseOptimizer", "BaseSampler", "HPSamplerMixin"]
+__all__ = ["BaseOptimizer", 
+           "BaseSampler", 
+           "HPSamplerMixin"]
 _LOGGER = logging.getLogger(__name__)
 
 # TODO: Add checks to ensure optimizer has a solution and results to save to disk
+
 
 class BaseOptimizer(BaseEstimator, ABC):
     """Base optimizer class.
@@ -26,12 +29,13 @@ class BaseOptimizer(BaseEstimator, ABC):
     Parameters
     ----------
     backend : str, optional (default='loky')
+        Backend manager for parallel processing. Valid arguments are 'loky', 
+        'threading', or 'multiprocessing'.
+        
+    n_jobs : int, optional (default=1)
         ADD HERE.
         
     verbose : bool, optional (default=False)
-        ADD HERE.
-        
-    n_jobs : int, optional (default=1)
         ADD HERE.
         
     seed : int or None, optional (default=None)
@@ -40,13 +44,13 @@ class BaseOptimizer(BaseEstimator, ABC):
     @abstractmethod
     def __init__(self, 
                  backend: str = 'loky', 
-                 verbose: bool = False, 
                  n_jobs: int = 1, 
+                 verbose: bool = False, 
                  seed: Union[int] = None) -> None:
         # Define backend for parallel computation
         if backend not in ['loky', 'threading', 'multiprocessing']:
-            msg = f"backend {backend} not a valid argument, use loky, threading, " + \
-                  "or multiprocessing"
+            msg = f"backend {backend} not a valid argument, use 'loky', 'threading', " + \
+                  "or 'multiprocessing'"
             _LOGGER.error(msg)
             raise ValueError(msg)
         self.backend = backend
@@ -58,22 +62,24 @@ class BaseOptimizer(BaseEstimator, ABC):
         elif abs(n_jobs) > max_cpus:
             n_jobs = max_cpus
         else:
-            if n_jobs < 0: n_jobs = list(range(1, cpu_count() + 1))[n_jobs]
+            if n_jobs < 0: 
+                n_jobs = list(range(1, cpu_count() + 1))[n_jobs]
         self.n_jobs = n_jobs
 
-        self.verbose   = verbose
-        self.seed      = seed
-        self.rng       = RandomState(seed=seed)
-        self.history   = []
-        self._hp_names = {}
-
-        # Keep track of best results
-        self.best_results           = Manager().dict()
-        self.best_results['metric'] = None
-        self.best_results['params'] = None
+        self.verbose = verbose
+        self.seed    = seed
+        self.rng     = RandomState(seed=seed)
 
     @property
     def __typename__(self):
+        """ADD HERE.
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        """
         return self.__class__.__name__
     
     def _initialize(self, 
@@ -93,31 +99,39 @@ class BaseOptimizer(BaseEstimator, ABC):
         -------
         None
         """
+        self.history_  = []
+        self.hp_names_ = {}
+
+        # Keep track of best results
+        self.best_results_           = Manager().dict()
+        self.best_results_['metric'] = None
+        self.best_results_['params'] = None
+
         # Cache parameter names
-        for sname, sdist in sampler._registered.items():
+        for sname, sdist in sampler.registered_.items():
             if sdist.__type__ == 'feature':
-                self._hp_names[sname] = sdist.feature_names
+                self.hp_names_[sname] = sdist.feature_names
             else:
-                self._hp_names[sname] = np.array(sdist.space.get_hyperparameter_names())
+                self.hp_names_[sname] = np.array(sdist.space.get_hyperparameter_names())
 
         # Set attribute and initialize metric
-        self.lower_is_better        = lower_is_better
-        self.best_results['metric'] = np.inf if lower_is_better else -np.inf
+        self.lower_is_better         = lower_is_better
+        self.best_results_['metric'] = np.inf if lower_is_better else -np.inf
 
         if self.verbose:
             _LOGGER.info(f"starting {self.__typename__} with {self.n_jobs} " +
                          f"jobs using {self.backend} backend")
     
     def _evaluate_single_config(self, 
-                                objective, 
-                                configuration, 
-                                i, 
-                                iteration):
+                                objective: Callable[..., Any], 
+                                configuration: Dict[Any, Any], 
+                                i: int, 
+                                iteration: int):
         """Calculate objective function for a single configuration.
         
         Parameters
         ----------
-        objective : callable function
+        objective : callable
             Function to be optimized.
             
         configuration : dict
@@ -137,7 +151,7 @@ class BaseOptimizer(BaseEstimator, ABC):
         if self.verbose and i % self.n_jobs == 0:
             _LOGGER.info(
                 f"evaluating configurations, {self.n_configurations - i} remaining"
-                )
+            )
     
         # Evaluate configuration
         results = objective(configuration)
@@ -153,17 +167,17 @@ class BaseOptimizer(BaseEstimator, ABC):
         else:
             # Find best metric so far and compare results to see if current result is better
             if self.lower_is_better:
-                if results['metric'] < self.best_results['metric']:
+                if results['metric'] < self.best_results_['metric']:
                     if self.verbose:
                         _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                    self.best_results['metric'] = results['metric']
-                    self.best_results['params'] = configuration        
+                    self.best_results_['metric'] = results['metric']
+                    self.best_results_['params'] = configuration        
             else:
-                if results['metric'] > self.best_results['metric']:
+                if results['metric'] > self.best_results_['metric']:
                     if self.verbose:
                         _LOGGER.info(f"new best metric {round(results['metric'], 4)}")
-                    self.best_results['metric'] = results['metric']
-                    self.best_results['params'] = configuration        
+                    self.best_results_['metric'] = results['metric']
+                    self.best_results_['params'] = configuration        
  
         return {
             'status'    : results['status'],
@@ -171,10 +185,15 @@ class BaseOptimizer(BaseEstimator, ABC):
             'params'    : configuration,
             'iteration' : iteration,
             'id'        : i
-            }
+        }
 
-    def _optimal_solution(self):
-        """Get optimal metric and solution.
+    @abstractmethod
+    def search(self):
+        pass
+    
+    @property
+    def best_solution_(self):
+        """Get best/optimal metric and solution.
         
         Parameters
         ----------
@@ -187,24 +206,29 @@ class BaseOptimizer(BaseEstimator, ABC):
             
         best_params : dict
             ADD HERE.
-        """
+        """        
+        if hasattr(self, "_best_solution"):
+            return self._best_solution
+        
         best_metric = np.inf if self.lower_is_better else -np.inf
         best_params = None
-        for results in self.history:
+        for results in self.history_:
             for config in results:
-                improve = config['metric'] < best_metric if self.lower_is_better \
-                            else config['metric'] > best_metric
+                improve = config['metric'] < best_metric \
+                    if self.lower_is_better else config['metric'] > best_metric
                 if improve:
                     best_metric = config['metric']
                     best_params = config['params']
-        
-        return best_metric, best_params
 
-    @abstractmethod
-    def search(self):
-        pass
+        # Add attributes for easier lookup later
+        self.best_metric_   = best_metric
+        self.best_params_   = best_params
+        self._best_solution = (best_metric, best_params)
 
-    def get_df(self):
+        return self._best_solution
+
+    @property
+    def df_history_(self):
         """ADD HERE.
         
         Parameters
@@ -214,8 +238,12 @@ class BaseOptimizer(BaseEstimator, ABC):
         -------
         
         """
+        # Check if already created
+        if hasattr(self, "_df_history"):
+            return self._df_history
+    
         # Concatenate history together
-        df = pd.concat([pd.DataFrame(h) for h in self.history], axis=0)\
+        df = pd.concat([pd.DataFrame(h) for h in self.history_], axis=0)\
                .reset_index(drop=True)
 
         # Unroll parameters
@@ -225,7 +253,7 @@ class BaseOptimizer(BaseEstimator, ABC):
             df_tmp  = pd.DataFrame.from_records(records)
             
             # Fix columns if found
-            columns = self._hp_names.get(sname, None)
+            columns = self.hp_names_.get(sname, None)
             if columns is not None:
                 columns = np.array(
                     list(map(lambda x: sname + "-" + x, columns))
@@ -236,6 +264,9 @@ class BaseOptimizer(BaseEstimator, ABC):
         # Sort by metric
         df = df.sort_values(by='metric', ascending=self.lower_is_better)\
                .reset_index(drop=True)
+        
+        # Set new attribute here for easier lookup later
+        self._df_history = df
 
         return df
 
@@ -251,12 +282,10 @@ class BaseOptimizer(BaseEstimator, ABC):
         -------
         None
         """
-        if not save_name.endswith(".csv"): save_name += ".csv"
-        
-        df = self.get_df()
-
-        # Write data to disk
-        df.to_csv(save_name, index=False)
+        if not save_name.endswith(".csv"): 
+            save_name += ".csv"
+            
+        self.df_history_.to_csv(save_name, index=False)
         if self.verbose:
             _LOGGER.info(f"saved results to disk at {save_name}")
 
@@ -269,16 +298,15 @@ class BaseOptimizer(BaseEstimator, ABC):
         Returns
         -------
         """
-        df = self.get_df()
-        
         # Boxplot and swarmplot
-        sns.boxplot(x='iteration', y='metric', data=df)
-        sns.swarmplot(x='iteration', y='metric', data=df, color=".25")
+        sns.boxplot(x='iteration', y='metric', data=self.df_history_)
+        sns.swarmplot(x='iteration', y='metric', data=self.df_history_, color=".25")
 
         # Decorate plots
-        best   = df.iloc[df['metric'].idxmin()] if self.lower_is_better \
-                    else df.iloc[df['metric'].idxmax()]
-        title  = f"Best metric = {round(best['metric'], 4)} found in " + \
+        idx   = self.df_history_['metric'].idxmin() if self.lower_is_better else \
+                    self.df_history_['metric'].idxmax()
+        best  = self.df_history_.iloc[idx]
+        title = f"Best metric = {round(best['metric'], 4)} found in " + \
                  f"iteration {best['iteration']}"
         plt.title(title)
         plt.tight_layout()
@@ -426,7 +454,8 @@ class HPSamplerMixin(BaseSampler):
         -------
         None
         """
-        if not self.dynamic_updating: return
+        if not self.dynamic_updating: 
+            return
         
         # Data must be a dataframe
         if not isinstance(data, pd.DataFrame):
@@ -438,7 +467,8 @@ class HPSamplerMixin(BaseSampler):
         for name in data.columns:
             
             # Do not update n_estimators distribution if early stopping enabled
-            if name == 'n_estimators' and self.early_stopping: continue
+            if name == 'n_estimators' and self.early_stopping: 
+                continue
             
             # Get information on hyperparameter distribution
             hp        = self.space.get_hyperparameter(name)

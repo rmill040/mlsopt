@@ -176,11 +176,10 @@ class BernoulliFeatureSampler(BaseSampler):
             # If support is False, force probabilities to always select 0 and 
             # update meta-data to indicate support is now False
             if not support:
-                new_proba = [1, 0]
+                new_proba = (1, 0)
             else:
-                new_proba = [1 - proba, proba]
+                new_proba = (1 - proba, proba)
             self.space.get_hyperparameter(name).probabilities = new_proba
-
             self.space.get_hyperparameter(name).meta.update({
                 "support" : support,
                 "updated" : True

@@ -56,7 +56,7 @@ class RSOptimizer(BaseOptimizer):
                          reverse=~self.lower_is_better)
 
         # Add to history
-        self.history.append(results)
+        self.history_.append(results)
 
     def _update_space(self, sampler, hof):
         """ADD
@@ -67,13 +67,15 @@ class RSOptimizer(BaseOptimizer):
         Returns
         -------
         """
-        if not self.dynamic_updating: return
+        if not self.dynamic_updating: 
+            return
+    
         # Sort by best metrics
-        df = pd.DataFrame(self.history[-1])\
+        df = pd.DataFrame(self.history_[-1])\
                .sort_values(by='metric', ascending=self.lower_is_better)[:hof]
 
         # Update sampler spaces
-        for sname in sampler.samplers.keys():
+        for sname in sampler.registered_.keys():
             df_space = pd.DataFrame.from_records(
                 df['params'].apply(lambda x: x[sname]).values.tolist()
             )
@@ -100,8 +102,7 @@ class RSOptimizer(BaseOptimizer):
         for iteration in range(1, self.max_iterations + 1):
 
             if self.verbose:
-                msg = "\n" + "*"*40 + f"\niteration {iteration}\n" + "*"*40
-                _LOGGER.info(msg)
+                _LOGGER.info("\n" + "*"*40 + f"\niteration {iteration}\n" + "*"*40)
 
             # Sample space
             configs = sampler.sample_space(n_samples=self.n_configurations)
@@ -114,7 +115,7 @@ class RSOptimizer(BaseOptimizer):
                 # Grab hof configs for this round
                 hof = int(np.ceil(self.n_configurations/self.subsample_factor))
                 if self.verbose:
-                    _LOGGER.info("updating search space")
+                    _LOGGER.info(f"updating search space with {hof} configurations")
                 self._update_space(sampler, hof)
 
         # Finished
@@ -122,4 +123,4 @@ class RSOptimizer(BaseOptimizer):
         if self.verbose:
             _LOGGER.info(f"finished searching in {minutes} minutes")
 
-        return self._optimal_solution()
+        return self.best_solution_

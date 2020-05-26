@@ -366,4 +366,4 @@ class GAOptimizer(BaseOptimizer):
         if self.verbose:
             _LOGGER.info(f"finished searching in {minutes} minutes")
 
-        return self._optimal_solution()
+        return self.best_solution_

@@ -28,8 +28,8 @@ def main():
 
     feature_sampler = BernoulliFeatureSampler(n_features=X.shape[1],
                                               muting_threshold=0.25,
-                                              dynamic_update=True)
-    hp_sampler      = XGBClassifierSampler(dynamic_update=True,
+                                              dynamic_updating=True)
+    hp_sampler      = XGBClassifierSampler(dynamic_updating=True,
                                            early_stopping=False)
     sampler         = PipelineSampler(seed=SEED)\
                         .register_sampler(feature_sampler, name='feature')\
@@ -83,8 +83,8 @@ def main():
 
     # Most of these parameters are set to the default, but are explicitly
     # specified for sake of example
-    opt = RSOptimizer(n_configurations=50,
-                      max_iterations=5,
+    opt = RSOptimizer(n_configurations=5,
+                      max_iterations=2,
                       subsample_factor=2,
                       verbose=1, 
                       n_jobs=-1,
