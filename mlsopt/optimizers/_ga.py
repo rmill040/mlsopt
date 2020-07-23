@@ -128,7 +128,7 @@ class GAOptimizer(BaseOptimizer):
                             reverse=~self.lower_is_better)
         
         # Add to history
-        self.history.append(population)
+        self.history_.append(population)
 
         return population
 
@@ -191,14 +191,13 @@ class GAOptimizer(BaseOptimizer):
             'size'    : self.tournament_size,
             'replace' : False
             }
-
         selector = np.argmin if self.lower_is_better else np.argmax
         while len(parents) < self.n_population:
             # Randomly select k chromosomes
             idx = self.rng.choice(**kwargs)
 
             # Run tournament selection and keep parent
-            winner_idx = selector(metrics[idx])
+            winner_idx = idx[selector(metrics[idx])]
             parents.append(
                 population[winner_idx]['params']
             )
@@ -294,8 +293,8 @@ class GAOptimizer(BaseOptimizer):
                 # sname := sampler name
                 for sname in population[idx].keys():
                     # Mutate hyperparameter space
-                    if sampler._registered[sname].__type__ == HP_SAMPLER:
-                        space = sampler._registered[sname].space    
+                    if sampler.registered_[sname].__type__ == HP_SAMPLER:
+                        space = sampler.registered_[sname].space    
                         # pname := parameter name
                         for pname in population[idx][sname].keys():
                             if self.rng.uniform() < self.mutation_independent_proba:
@@ -303,7 +302,7 @@ class GAOptimizer(BaseOptimizer):
                                     space.get_hyperparameter(pname).sample(space.random)
                         
                     # Mutate feature space
-                    elif sampler._registered[sname].__type__ == FEATURE_SAMPLER:
+                    elif sampler.registered_[sname].__type__ == FEATURE_SAMPLER:
                         n_attr = len(population[idx][sname])
                         change = np.where(
                             self.rng.uniform(size=n_attr) < self.mutation_independent_proba
